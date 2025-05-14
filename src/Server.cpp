@@ -11,7 +11,8 @@ Server::Server(const std::string &port, const std::string &password)
 
 Server::~Server()
 {
-	close(_serverSocket);
+	for (std::size_t i = 0; i < _pollFds.size(); ++i)
+		close(_pollFds[i].fd);
 }
 
 void Server::_initSocket()
@@ -35,6 +36,11 @@ void Server::_initSocket()
 
 	if (listen(_serverSocket, 5) < 0)
 		throw std::runtime_error("Failed to listen on socket");
+
+	struct pollfd serverPfd;
+	serverPfd.fd = _serverSocket;
+	serverPfd.events = POLLIN;
+	_pollFds.push_back(serverPfd);
 	
 	std::cout << "Server listening on port " << _port << std::endl;
 }
@@ -43,11 +49,62 @@ void Server::run()
 {
 	while (true)
 	{
-		int clientSocket = accept(_serverSocket, NULL, NULL);
-		if (clientSocket >= 0)
+		int ret = poll(&_pollFds[0], _pollFds.size(), -1);
+		if (ret < 0)
+			throw std::runtime_error("poll() failed");
+		
+		for (std::size_t i = 0; i < _pollFds.size(); ++i)
 		{
-			std::cout << "New connection accepted (fd: " << clientSocket << ")" << std::endl;
-			close(clientSocket);
+			if (_pollFds[i].revents & POLLIN)
+			{
+				if (_pollFds[i].fd == _serverSocket)
+					_acceptNewClient();
+				else
+					_handleClientMessage(_pollFds[i].fd);
+			}
+		}
+	}
+}
+
+void Server::_acceptNewClient()
+{
+	int clientFd = accept(_serverSocket, NULL, NULL);
+	if (clientFd < 0)
+		return;
+	
+	struct pollfd clientPfd;
+	clientPfd.fd = clientFd;
+	clientPfd.events = POLLIN;
+	_pollFds.push_back(clientPfd);
+
+	std::cout << "New client connected (fd: " << clientFd << ")" << std::endl;
+}
+
+void Server::_handleClientMessage(int clientFd)
+{
+	char buffer[512];
+	std::memset(buffer, 0, sizeof(buffer));
+	int bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
+	if (bytesRead <= 0)
+	{
+		std::cout << "Client disconnected (fd: " << clientFd << ")" << std::endl;
+		_removeClient(clientFd);
+		return;
+	}
+
+	std::string msg(buffer);
+	std::cout << "Message from "<< clientFd << ": " << msg;
+}
+
+void Server::_removeClient(int clientFd)
+{
+	close(clientFd);
+	for (std::size_t i = 0; i < _pollFds.size(); ++i)
+	{
+		if (_pollFds[i].fd == clientFd)
+		{
+			_pollFds.erase(_pollFds.begin() + i);
+			break;
 		}
 	}
 }
