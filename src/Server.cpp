@@ -77,6 +77,9 @@ void Server::_acceptNewClient()
 	clientPfd.events = POLLIN;
 	_pollFds.push_back(clientPfd);
 
+	Client *newClient = new Client(clientFd);
+	_clients[clientFd] = newClient;
+
 	std::cout << "New client connected (fd: " << clientFd << ")" << std::endl;
 }
 
@@ -93,7 +96,14 @@ void Server::_handleClientMessage(int clientFd)
 	}
 
 	std::string msg(buffer);
-	std::cout << "Message from "<< clientFd << ": " << msg;
+	std::istringstream ss(msg);
+	std::string line;
+	while (std::getline(ss, line))
+	{
+		if (!line.empty() && line[line.size() - 1] == '\r')
+			line.erase(line.size() - 1);
+		_parseCommand(clientFd, line);
+	}
 }
 
 void Server::_removeClient(int clientFd)
@@ -107,4 +117,63 @@ void Server::_removeClient(int clientFd)
 			break;
 		}
 	}
+	std::map<int, Client *>::iterator it = _clients.find(clientFd);
+	if (it != _clients.end())
+	{
+		delete it->second;
+		_clients.erase(it);
+	}
+}
+
+void Server::_parseCommand(int clientFd, const std::string &msg)
+{
+	Client *client = _clients[clientFd];
+	std::istringstream ss(msg);
+	std::string cmd;
+	ss >> cmd;
+
+	if (cmd == "PASS")
+	{
+		std::string pass;
+		ss >> pass;
+		if (pass == _password)
+			client->setPass(true);
+		else
+			_sendMessage(clientFd, "464 :Password incorrect\r\n");
+	}
+	else if (cmd == "NICK")
+	{
+		std::string nick;
+		ss >> nick;
+		if (_nicknameExists(nick))
+			_sendMessage(clientFd, "433 * " + nick + " :Nickname is already in use\r\n");
+		else
+			client->setNickname(nick);
+	}
+	else if (cmd == "USER")
+	{
+		std::string username, unused, unused2, realname;
+		ss >> username >> unused >> unused2;
+		std::getline(ss, realname);
+		client->setUsername(username);
+	}
+
+	client->tryAuthenticate();
+	if (client->isAuthenticated())
+		_sendMessage(clientFd, ":ircserv 001 " + client->getNickname() + " : Welcome to ft_irc!\r\n");
+}
+
+void Server::_sendMessage(int fd, const std::string &msg)
+{
+	send(fd, msg.c_str(), msg.length(), 0);
+}
+
+bool Server::_nicknameExists(const std::string &nickname)
+{
+	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		if (it->second->getNickname() == nickname)
+			return true;
+	}
+	return false;
 }

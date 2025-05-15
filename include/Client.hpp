@@ -1,0 +1,39 @@
+#ifndef CLIENT_HPP
+#define CLIENT_HPP
+
+#include <string>
+#include <sstream>
+
+class Client
+{
+    private:
+        int _fd;
+        bool _authenticated;
+        std::string _nickname;
+        std::string _username;
+        std::string _hostname;
+        std::string _realname;
+        bool _hasPass;
+        bool _hasNick;
+        bool _hasUser;
+    
+    public:
+        Client(int fd);
+        ~Client();
+        
+        int getFd() const;
+        const std::string &getNickname() const;
+        const std::string &getUsername() const;
+
+        bool isAuthenticated() const;
+        bool hasAllInfo() const;
+
+        void setNickname(const std::string &nickname);
+        void setUsername(const std::string &username);
+        void setPass(bool ok);
+        void tryAuthenticate();
+
+        std::string getPrefix() const;
+};
+
+#endif
