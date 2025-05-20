@@ -106,23 +106,23 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 		_sendWelcomeMessage(clientFd);
 }
 
-void Server::_handleNick(int clientFd, const std::string &nickname)
+/* void Server::_handleNick(int clientFd, const std::string &nickname)
 {
 	Client *client = _clients[clientFd];
 	client->setNickname(nickname);
 
 	if (client->isRegistered())
 		_sendWelcomeMessage(clientFd);
-}
+} */
 
-void Server::_handleUser(int clientFd, const std::string &username)
+/* void Server::_handleUser(int clientFd, const std::string &username)
 {
 	Client *client = _clients[clientFd];
 	client->setUsername(username);
 
 	if (client->isRegistered())
 		_sendWelcomeMessage(clientFd);
-}
+} */
 
 void Server::_handleJoin(int clientFd, const std::string &channelName)
 {
@@ -264,7 +264,7 @@ void Server::_handlePart(int clientFd, const std::string &channelName, const std
 	}
 }
 
-void Server::_handleQuit(int clientFd, const std::string &reason)
+/* void Server::_handleQuit(int clientFd, const std::string &reason)
 {
 	Client *client = _clients[clientFd];
 	std::string quitMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost QUIT";
@@ -309,7 +309,7 @@ void Server::_handleQuit(int clientFd, const std::string &reason)
 	delete client;
 	_clients.erase(clientFd);
 }
-
+ */
 void Server::_sendWelcomeMessage(int clientFd)
 {
 	Client *client = _clients[clientFd];
