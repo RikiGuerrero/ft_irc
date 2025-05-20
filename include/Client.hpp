@@ -27,9 +27,12 @@ class Client
 
         bool isAuthenticated() const;
         bool hasAllInfo() const;
+        bool isRegistered() const;
+        bool isPassSet() const;
 
         void setNickname(const std::string &nickname);
         void setUsername(const std::string &username);
+        void setRealname(const std::string &realname);
         void setPass(bool ok);
         void tryAuthenticate();
 

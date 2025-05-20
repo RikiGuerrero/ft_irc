@@ -26,6 +26,14 @@ bool Client::hasAllInfo() const
 {
     return _hasPass && _hasNick && _hasUser;
 }
+bool Client::isRegistered() const
+{
+    return _hasNick && _hasUser;
+}
+bool Client::isPassSet() const
+{
+    return _hasPass;
+}
 void Client::setNickname(const std::string &nickname)
 {
     _nickname = nickname;
@@ -35,6 +43,10 @@ void Client::setUsername(const std::string &username)
 {
     _username = username;
     _hasUser = true;
+}
+void Client::setRealname(const std::string &realname)
+{
+    _realname = realname;
 }
 void Client::setPass(bool ok)
 {
