@@ -2,7 +2,7 @@
 
 void Server::_sendMessage(int fd, const std::string &msg)
 {
-	send(fd, msg.c_str(), msg.length(), 0);
+	send(fd, msg.c_str(), msg.length(), 0);//envia uma mensagem a um fd
 }
 
 bool Server::_nicknameExists(const std::string &nickname)

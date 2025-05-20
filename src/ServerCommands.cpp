@@ -9,7 +9,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 
 	bool wasAuthenticated = client->isAuthenticated();
 
-	if (!wasAuthenticated)
+	if (!wasAuthenticated)//se nao esta autenticado
 	{
 		if (cmd == "PASS")
 		{
@@ -18,7 +18,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 			if (pass == _password)
 				client->setPass(true);
 			else
-				_sendMessage(clientFd, "464 :Password incorrect\r\n");
+				_sendMessage(clientFd, "464 :Password incorrect\r\n");//envia mensagem ao servidor
 		}
 		else if (cmd == "NICK")
 		{
@@ -29,7 +29,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 			}
 			std::string nick;
 			ss >> nick;
-			if (_nicknameExists(nick))
+			if (_nicknameExists(nick))//se nao é repetido
 				_sendMessage(clientFd, "433 * " + nick + " :Nickname is already in use\r\n");
 			else
 				client->setNickname(nick);
@@ -69,7 +69,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 		{
 			std::string channel;
 			ss >> channel;
-			_handleJoin(clientFd, channel);
+			_handleJoin(clientFd, channel);//entrar em um canal
 		}
 		else if (cmd == "PRIVMSG")
 		{
@@ -78,7 +78,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 			std::getline(ss, message);
 			if (message[0] == ':')
 				message = message.substr(1);
-			_handlePrivmsg(clientFd, target, message);
+			_handlePrivmsg(clientFd, target, message);//enviar msg privada a um canal ou cliente
 		}
 		else if (cmd == "PING")
 		{
@@ -89,7 +89,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 			if (!token.empty())
 				_sendMessage(clientFd, ":" + client->getNickname() + " PONG :" + token + "\r\n");
 		}
-		else if (cmd == "PART")
+		else if (cmd == "PART")//remove um usuario de um canal
 		{
 			std::string channel, reason;
 			ss >> channel;
@@ -100,7 +100,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 		}
 	}
 
-	client->tryAuthenticate();
+	client->tryAuthenticate();//autentica o cliente
 
 	if (!wasAuthenticated && client->isAuthenticated())
 		_sendWelcomeMessage(clientFd);
@@ -128,22 +128,22 @@ void Server::_handleJoin(int clientFd, const std::string &channelName)
 {
 	Client* client = _clients[clientFd];
 
-	if (_channels.find(channelName) == _channels.end())
-		_channels[channelName] = new Channel(channelName);
+	if (_channels.find(channelName) == _channels.end())// si el canal no existe
+		_channels[channelName] = new Channel(channelName);//cria o canal
 	
 	Channel *channel = _channels[channelName];
 
-	if (channel->hasClient(client))
+	if (channel->hasClient(client))//se o cliente esta no canal
 		return;
 	
-	channel->addClient(client);
+	channel->addClient(client);//se nao adiciona ao set dos clientes
 
-	if (channel->isOperator(client) == false && channel->getTopic().empty())
-		channel->addOperator(client);
+	if (channel->isOperator(client) == false && channel->getTopic().empty())//se o cliente nao é operador e o tópico esta vazio
+		channel->addOperator(client);//adc ao set de operadores
 	
 	_sendMessage(clientFd, ":" + client->getNickname() + " JOIN :" + channelName + "\r\n");
 
-	if (channel->getTopic().empty())
+	if (channel->getTopic().empty())//set topic
 		_sendMessage(clientFd, ":ircserv 331 " + client->getNickname() + " " + channelName + " :No topic is set\r\n");
 	else
 		_sendMessage(clientFd, ":ircserv 332 " + client->getNickname() + " " + channelName + " :" + channel->getTopic() + "\r\n");
@@ -163,7 +163,7 @@ void Server::_handleJoin(int clientFd, const std::string &channelName)
 
 	_sendMessage(clientFd, ":ircserv 366 " + client->getNickname() + " " + channelName + " :End of NAMES list\r\n");
 
-	_broadcastToChannel(channelName, client->getPrefix() + " JOIN :" + channelName + "\r\n", clientFd);
+	_broadcastToChannel(channelName, client->getPrefix() + " JOIN :" + channelName + "\r\n", clientFd);//transmissao ao canal
 }
 
 void Server::_handlePrivmsg(int clientFd, const std::string &target, const std::string &message)
@@ -177,7 +177,7 @@ void Server::_handlePrivmsg(int clientFd, const std::string &target, const std::
 		return;
 	}
 
-	if (target[0] == '#')
+	if (target[0] == '#')//se é um canal
 	{
 		if (_channels.find(target) == _channels.end())
 		{
@@ -192,16 +192,16 @@ void Server::_handlePrivmsg(int clientFd, const std::string &target, const std::
 			return;
 		}
 
-		std::string fullMsg = prefix + target + " :" + message + "\r\n";
+		std::string fullMsg = prefix + target + " :" + message + "\r\n";//ajeita a mensagem
 		for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
-			if (it->second != sender && channel->hasClient(it->second))
+			if (it->second != sender && channel->hasClient(it->second))//se nao for o sender
 				_sendMessage(it->first, fullMsg);
 		}
 	}
 	else
 	{
-		Client *recipient = NULL;
+		Client *recipient = NULL;//encontra o destinatario da mensagem
 		for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
 			if (it->second->getNickname() == target)
@@ -217,8 +217,8 @@ void Server::_handlePrivmsg(int clientFd, const std::string &target, const std::
 			return;
 		}
 
-		std::string fullMsg = prefix + target + " :" + message + "\r\n";
-		_sendMessage(recipient->getFd(), fullMsg);
+		std::string fullMsg = prefix + target + " :" + message + "\r\n";//ajeita a mensagem
+		_sendMessage(recipient->getFd(), fullMsg);//envia
 	}
 }
 
@@ -244,11 +244,11 @@ void Server::_handlePart(int clientFd, const std::string &channelName, const std
 		partMsg += " :" + reason;
 	partMsg += "\r\n";
 
-	_broadcastToChannel(channelName, partMsg, -1);
+	_broadcastToChannel(channelName, partMsg, -1);//envia mensagem ao canal
 
-	channel->removeClient(client);
+	channel->removeClient(client);//remove o cliente
 
-	bool empty = true;
+	bool empty = true;//si o canal estiver vazio após isso remove o canal também
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (channel->hasClient(it->second))
@@ -324,7 +324,7 @@ void Server::_sendWelcomeMessage(int clientFd)
 
 void Server::_broadcastToChannel(const std::string &channelName, const std::string &msg, int excludeFd)
 {
-	Channel* channel = _channels[channelName];
+	Channel* channel = _channels[channelName];//encontra o canal desejado e envia a mensagem
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (channel->hasClient(it->second) && it->first != excludeFd)
