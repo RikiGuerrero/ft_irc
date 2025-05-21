@@ -7,7 +7,10 @@ void Server::_pass(Client *client, int clientFd, const std::string &msg)
 	std::string pass, cmd; 
 	ss >> cmd >> pass;
 	if (pass == _password)
+	{
 		client->setPass(true);
+		std::cout << "Pass is correct!\n";
+	}
 	else
 		_sendMessage(clientFd, "464 :Password incorrect\r\n");//envia mensagem ao servidor
 }
@@ -27,6 +30,7 @@ void Server::_nick(Client *client, int clientFd, const std::string &msg)
 		_sendMessage(clientFd, "433 * " + nick + " :Nickname is already in use\r\n");
 	else
 		client->setNickname(nick);
+	std::cout << "Nick: " << client->getNickname() << " is setted!\n"; 
 }
 
 void Server::_user(Client *client, int clientFd, const std::string &msg)
@@ -50,14 +54,14 @@ void Server::_user(Client *client, int clientFd, const std::string &msg)
 	{
 		_sendMessage(clientFd, "461 USER :Not enough parameters\r\n");
 		return;
-	
+	}	
 	if (!realname.empty() && realname[0] == ' ')
 		realname = realname.substr(1);
 	if (!realname.empty() && realname[0] == ':')
 		realname = realname.substr(1);
 	client->setUsername(username);
 	client->setRealname(realname);
-	}
+	std::cout << "User: " << client->getUsername() << " is setted!\n"; 
 }
 
 void Server::_join(Client *client, int clientFd, const std::string &msg)
