@@ -1,5 +1,5 @@
 #ifndef CLIENT_HPP
-#define CLIENT_HPP
+    #define CLIENT_HPP
 
 #include <string>
 #include <sstream>
@@ -24,6 +24,7 @@ class Client
         int getFd() const;
         const std::string &getNickname() const;
         const std::string &getUsername() const;
+        Client * getClient(std::string nick);
 
         bool isAuthenticated() const;
         bool hasAllInfo() const;

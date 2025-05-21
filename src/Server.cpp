@@ -21,6 +21,42 @@ Server::~Server()
 		close(_pollFds[i].fd);
 }
 
+void Server::_parseCommand(int clientFd, const std::string &msg)
+{
+	Client *client = _clients[clientFd];
+	std::istringstream ss(msg);
+	std::string cmd;
+	ss >> cmd;
+
+	bool wasAuthenticated = client->isAuthenticated();
+
+	if (!wasAuthenticated)//se nao esta autenticado
+	{
+		if (cmd == "PASS" || cmd == "pass")
+			_pass(client, clientFd, msg);
+		else if (cmd == "NICK" || cmd == "nick")
+			_nick(client, clientFd, msg);
+		else if (cmd == "USER")
+			_user(client, clientFd, msg);
+	}
+	else
+	{
+		if (cmd == "JOIN")
+			_join(client, clientFd, msg);//entrar em um canal
+		else if (cmd == "PRIVMSG")
+			_privmsg(client, clientFd, msg);//enviar msg privada a um canal ou cliente
+		else if (cmd == "PING")
+			_ping(client, clientFd, msg);
+		else if (cmd == "PART")//remove um usuario de um canal
+			_part(client, clientFd, msg);
+	}
+
+	client->tryAuthenticate();//autentica o cliente
+
+	if (!wasAuthenticated && client->isAuthenticated())
+		_sendWelcomeMessage(clientFd);
+}
+
 void Server::_initSocket()
 {
 	_serverSocket = socket(AF_INET, SOCK_STREAM, 0);//cria o socket

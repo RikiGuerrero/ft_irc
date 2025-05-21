@@ -41,9 +41,11 @@ class Server
 		void _join(Client *client, int clientFd, const std::string &msg);
 		void _ping(Client *client, int clientFd, const std::string &msg);
 		void _part(Client *client, int clientFd, const std::string &msg);
+		void _kick(Client *client, int clientFd, const std::string &msg);
 		void _privmsg(Client *sender, int clientFd, const std::string &msg);
 
-
+		std::string getError(int error, std::string name,  std::string sec_part);
+		
 	public:
 		Server(const std::string &port, const std::string &password);
 		~Server();
