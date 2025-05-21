@@ -8,7 +8,7 @@ Server::Server(const std::string &port, const std::string &password)
 			throw std::invalid_argument("Invalid port");
 	}
 	_password = password;
-	_port = std::atoi(port.c_str());
+	_port = std::atoi(port.c_str()); 
 	if (_port <= 1024 || _port > 65535)
 		throw std::invalid_argument("Invalid port");
 

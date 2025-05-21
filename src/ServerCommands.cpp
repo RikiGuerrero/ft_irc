@@ -1,132 +1,70 @@
 #include "Server.hpp"
 
-void Server::_parseCommand(int clientFd, const std::string &msg)
+//posso passar ss como ponteiro.
+void Server::_pass(Client *client, int clientFd, const std::string &msg)
 {
-	Client *client = _clients[clientFd];
 	std::istringstream ss(msg);
-	std::string cmd;
-	ss >> cmd;
-
-	bool wasAuthenticated = client->isAuthenticated();
-
-	if (!wasAuthenticated)//se nao esta autenticado
-	{
-		if (cmd == "PASS")
-		{
-			std::string pass;
-			ss >> pass;
-			if (pass == _password)
-				client->setPass(true);
-			else
-				_sendMessage(clientFd, "464 :Password incorrect\r\n");//envia mensagem ao servidor
-		}
-		else if (cmd == "NICK")
-		{
-			if (!client->isPassSet())
-			{
-				_sendMessage(clientFd, "451 :You have not registered\r\n");
-				return;
-			}
-			std::string nick;
-			ss >> nick;
-			if (_nicknameExists(nick))//se nao é repetido
-				_sendMessage(clientFd, "433 * " + nick + " :Nickname is already in use\r\n");
-			else
-				client->setNickname(nick);
-		}
-		else if (cmd == "USER")
-		{
-			if (!client->isPassSet())
-			{
-				_sendMessage(clientFd, "451 :You have not registered\r\n");
-				return;
-			}
-			if (client->isRegistered())
-			{
-				_sendMessage(clientFd, "462 :You may not reregister\r\n");
-				return;
-			}
-			std::string username, unused, unused2, realname;
-			ss >> username >> unused >> unused2;
-			std::getline(ss, realname);
-			if (username.empty() || unused.empty() || unused2.empty() || realname.empty())
-			{
-				_sendMessage(clientFd, "461 USER :Not enough parameters\r\n");
-				return;
-			}
-
-			if (!realname.empty() && realname[0] == ' ')
-				realname = realname.substr(1);
-			if (!realname.empty() && realname[0] == ':')
-				realname = realname.substr(1);
-			client->setUsername(username);
-			client->setRealname(realname);
-		}
-	}
+	std::string pass, cmd; 
+	ss >> cmd >> pass;
+	if (pass == _password)
+		client->setPass(true);
 	else
-	{
-		if (cmd == "JOIN")
-		{
-			std::string channel;
-			ss >> channel;
-			_handleJoin(clientFd, channel);//entrar em um canal
-		}
-		else if (cmd == "PRIVMSG")
-		{
-			std::string target, message;
-			ss >> target;
-			std::getline(ss, message);
-			if (message[0] == ':')
-				message = message.substr(1);
-			_handlePrivmsg(clientFd, target, message);//enviar msg privada a um canal ou cliente
-		}
-		else if (cmd == "PING")
-		{
-			std::string token;
-			ss >> token;
-			if (!token.empty() && token[0] == ':')
-				token = token.substr(1);
-			if (!token.empty())
-				_sendMessage(clientFd, ":" + client->getNickname() + " PONG :" + token + "\r\n");
-		}
-		else if (cmd == "PART")//remove um usuario de um canal
-		{
-			std::string channel, reason;
-			ss >> channel;
-			std::getline(ss, reason);
-			if (reason[0] == ':')
-				reason = reason.substr(1);
-			_handlePart(clientFd, channel, reason);
-		}
-	}
-
-	client->tryAuthenticate();//autentica o cliente
-
-	if (!wasAuthenticated && client->isAuthenticated())
-		_sendWelcomeMessage(clientFd);
+		_sendMessage(clientFd, "464 :Password incorrect\r\n");//envia mensagem ao servidor
 }
 
-/* void Server::_handleNick(int clientFd, const std::string &nickname)
+void Server::_nick(Client *client, int clientFd, const std::string &msg)
 {
-	Client *client = _clients[clientFd];
-	client->setNickname(nickname);
+	std::string nick, cmd;
+	std::istringstream ss(msg);
+	ss >> cmd;
+	if (!client->isPassSet())
+	{
+		_sendMessage(clientFd, "451 :You have not registered\r\n");
+		return;
+	}
+	ss >> nick;
+	if (_nicknameExists(nick))//se nao é repetido
+		_sendMessage(clientFd, "433 * " + nick + " :Nickname is already in use\r\n");
+	else
+		client->setNickname(nick);
+}
 
+void Server::_user(Client *client, int clientFd, const std::string &msg)
+{
+	std::istringstream ss(msg);
+	std::string username, unused, unused2, realname, cmd;
+
+	if (!client->isPassSet())
+	{
+		_sendMessage(clientFd, "451 :You have not registered\r\n");
+		return;
+	}
 	if (client->isRegistered())
-		_sendWelcomeMessage(clientFd);
-} */
-
-/* void Server::_handleUser(int clientFd, const std::string &username)
-{
-	Client *client = _clients[clientFd];
+	{
+		_sendMessage(clientFd, "462 :You may not reregister\r\n");
+		return;
+	}
+	ss >> cmd >> username >> unused >> unused2;
+	std::getline(ss, realname);
+	if (username.empty() || unused.empty() || unused2.empty() || realname.empty())
+	{
+		_sendMessage(clientFd, "461 USER :Not enough parameters\r\n");
+		return;
+	
+	if (!realname.empty() && realname[0] == ' ')
+		realname = realname.substr(1);
+	if (!realname.empty() && realname[0] == ':')
+		realname = realname.substr(1);
 	client->setUsername(username);
+	client->setRealname(realname);
+	}
+}
 
-	if (client->isRegistered())
-		_sendWelcomeMessage(clientFd);
-} */
-
-void Server::_handleJoin(int clientFd, const std::string &channelName)
+void Server::_join(Client *client, int clientFd, const std::string &msg)
 {
-	Client* client = _clients[clientFd];
+	std::string cmd, channelName;
+	std::istringstream ss(msg);
+	ss >> cmd >> channelName;
 
 	if (_channels.find(channelName) == _channels.end())// si el canal no existe
 		_channels[channelName] = new Channel(channelName);//cria o canal
@@ -166,10 +104,17 @@ void Server::_handleJoin(int clientFd, const std::string &channelName)
 	_broadcastToChannel(channelName, client->getPrefix() + " JOIN :" + channelName + "\r\n", clientFd);//transmissao ao canal
 }
 
-void Server::_handlePrivmsg(int clientFd, const std::string &target, const std::string &message)
+
+void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 {
-	Client *sender = _clients[clientFd];
+	std::string cmd, target, message;
+	std::istringstream ss(msg);
 	std::string prefix = ":" + sender->getNickname() + "!" + sender->getUsername() + "@localhost PRIVMSG ";
+
+	ss >> cmd >> target >> message;
+	std::getline(ss, message);
+	if (message[0] == ':')
+		message = message.substr(1);
 
 	if (target.empty() || message.empty())
 	{
@@ -222,32 +167,49 @@ void Server::_handlePrivmsg(int clientFd, const std::string &target, const std::
 	}
 }
 
-void Server::_handlePart(int clientFd, const std::string &channelName, const std::string &reason)
+void Server::_ping(Client *client, int clientFd, const std::string &msg)
 {
-	Client *client = _clients[clientFd];
+	std::istringstream ss(msg);
+	std::string cmd, token;
 
+	ss >> cmd >> token;
+	if (!token.empty() && token[0] == ':')
+		token = token.substr(1);
+	if (!token.empty())
+		_sendMessage(clientFd, ":" + client->getNickname() + " PONG :" + token + "\r\n");
+}
+
+void Server::_part(Client *client, int clientFd, const std::string &msg)
+{
+	std::string cmd, channelName, reason;
+	std::istringstream ss(msg);
+
+	ss >> cmd >> channelName >> reason;
+	std::getline(ss, reason);
+	if (reason[0] == ':')
+	reason = reason.substr(1);
 	if (_channels.find(channelName) == _channels.end())
 	{
 		_sendMessage(clientFd, ":ircserv 403 " + client->getNickname() + " " + channelName + " :No such channel\r\n");
 		return;
 	}
-
+	
 	Channel *channel = _channels[channelName];
 	if (!channel->hasClient(client))
 	{
 		_sendMessage(clientFd, ":ircserv 442 " + client->getNickname() + " " + channelName + " :You're not on that channel\r\n");
 		return;
 	}
-
+	
 	std::string partMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost PART " + channelName;
 	if (!reason.empty())
-		partMsg += " :" + reason;
+	partMsg += " :" + reason;
 	partMsg += "\r\n";
-
+	
 	_broadcastToChannel(channelName, partMsg, -1);//envia mensagem ao canal
-
+	
 	channel->removeClient(client);//remove o cliente
-
+	
 	bool empty = true;//si o canal estiver vazio após isso remove o canal também
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
@@ -263,6 +225,59 @@ void Server::_handlePart(int clientFd, const std::string &channelName, const std
 		_channels.erase(channelName);
 	}
 }
+
+void Server::_parseCommand(int clientFd, const std::string &msg)
+{
+	Client *client = _clients[clientFd];
+	std::istringstream ss(msg);
+	std::string cmd;
+	ss >> cmd;
+
+	bool wasAuthenticated = client->isAuthenticated();
+
+	if (!wasAuthenticated)//se nao esta autenticado
+	{
+		if (cmd == "PASS" || cmd == "pass")
+			_pass(client, clientFd, msg);
+		else if (cmd == "NICK" || cmd == "nick")
+			_nick(client, clientFd, msg);
+		else if (cmd == "USER")
+			_user(client, clientFd, msg);
+	}
+	else
+	{
+		if (cmd == "JOIN")
+			_join(client, clientFd, msg);//entrar em um canal
+		else if (cmd == "PRIVMSG")
+			_privmsg(client, clientFd, msg);//enviar msg privada a um canal ou cliente
+		else if (cmd == "PING")
+			_ping(client, clientFd, msg);
+		else if (cmd == "PART")//remove um usuario de um canal
+			_part(client, clientFd, msg);
+	}
+
+	client->tryAuthenticate();//autentica o cliente
+
+	if (!wasAuthenticated && client->isAuthenticated())
+		_sendWelcomeMessage(clientFd);
+}
+/* void Server::_handleNick(int clientFd, const std::string &nickname)
+{
+	Client *client = _clients[clientFd];
+	client->setNickname(nickname);
+
+	if (client->isRegistered())
+		_sendWelcomeMessage(clientFd);
+} */
+
+/* void Server::_handleUser(int clientFd, const std::string &username)
+{
+	Client *client = _clients[clientFd];
+	client->setUsername(username);
+
+	if (client->isRegistered())
+		_sendWelcomeMessage(clientFd);
+} */
 
 /* void Server::_handleQuit(int clientFd, const std::string &reason)
 {
