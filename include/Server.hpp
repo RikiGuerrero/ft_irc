@@ -6,10 +6,14 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <csignal>
+#include <cerrno>
 #include <unistd.h>
 #include <poll.h>
+#include <fcntl.h>
 #include <vector>
 #include <map>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 

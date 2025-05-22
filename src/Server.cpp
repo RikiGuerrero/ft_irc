@@ -1,5 +1,7 @@
 #include "Server.hpp"
 
+extern volatile sig_atomic_t g_signalStatus;
+
 Server::Server(const std::string &port, const std::string &password)
 {
 	_port = std::atoi(port.c_str());
@@ -23,8 +25,17 @@ void Server::_initSocket()
 
 	int opt = 1;
 	if (setsockopt(_serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+	{
+		close(_serverSocket);
 		throw std::runtime_error("Failed to set socket options");
+	}
 	
+	if (fcntl(_serverSocket, F_SETFL, O_NONBLOCK) < 0)
+	{
+		close(_serverSocket);
+		throw std::runtime_error("Failed to set socket to non-blocking");
+	}
+
 	struct sockaddr_in serverAddr;
 	std::memset(&serverAddr, 0, sizeof(serverAddr));
 	serverAddr.sin_family = AF_INET;
@@ -32,10 +43,16 @@ void Server::_initSocket()
 	serverAddr.sin_port = htons(_port);
 
 	if (bind(_serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)
+	{
+		close(_serverSocket);
 		throw std::runtime_error("Failed to bind socket");
+	}
 
 	if (listen(_serverSocket, 5) < 0)
+	{
+		close(_serverSocket);
 		throw std::runtime_error("Failed to listen on socket");
+	}
 
 	struct pollfd serverPfd;
 	serverPfd.fd = _serverSocket;
@@ -47,12 +64,15 @@ void Server::_initSocket()
 
 void Server::run()
 {
-	while (true)
+	while (g_signalStatus)
 	{
 		int ret = poll(&_pollFds[0], _pollFds.size(), -1);
 		if (ret < 0)
-			throw std::runtime_error("poll() failed");
-		
+		{
+			if (errno != EINTR)
+				throw std::runtime_error("poll() failed");
+			continue;
+		}
 		for (std::size_t i = 0; i < _pollFds.size(); ++i)
 		{
 			if (_pollFds[i].revents & POLLIN)
@@ -68,16 +88,26 @@ void Server::run()
 
 void Server::_acceptNewClient()
 {
-	int clientFd = accept(_serverSocket, NULL, NULL);
+	sockaddr_in clientAddr;
+	socklen_t addrLen = sizeof(clientAddr);
+	int clientFd = accept(_serverSocket, (struct sockaddr *)&clientAddr, &addrLen);
 	if (clientFd < 0)
 		return;
-	
+	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0)
+	{
+		close(clientFd);
+		throw std::runtime_error("Failed to set client socket to non-blocking");
+	}
 	struct pollfd clientPfd;
 	clientPfd.fd = clientFd;
 	clientPfd.events = POLLIN;
 	_pollFds.push_back(clientPfd);
 
-	Client *newClient = new Client(clientFd);
+	char clientIp[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &clientAddr.sin_addr, clientIp, INET_ADDRSTRLEN);
+	std::string hostname = clientIp;
+
+	Client *newClient = new Client(clientFd, hostname);
 	_clients[clientFd] = newClient;
 
 	std::cout << "New client connected (fd: " << clientFd << ")" << std::endl;
@@ -90,7 +120,6 @@ void Server::_handleClientMessage(int clientFd)
 	int bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
 	if (bytesRead <= 0)
 	{
-		std::cout << "Client disconnected (fd: " << clientFd << ")" << std::endl;
 		_removeClient(clientFd);
 		return;
 	}
@@ -123,4 +152,6 @@ void Server::_removeClient(int clientFd)
 		delete it->second;
 		_clients.erase(it);
 	}
+
+	std::cout << "Client disconnected and removed. Socket fd: " << clientFd << std::endl;
 }

@@ -1,7 +1,19 @@
 #include "Server.hpp"
 
+volatile sig_atomic_t g_signalStatus = 1;
+
+void _signalHandler(int signal)
+{
+	if (signal == SIGINT)
+	{
+		g_signalStatus = 0;
+		std::cout << "\nSIGINT received. Shutting down server gracefully..." << std::endl;
+	}
+}
+
 int main(int argc, char **argv)
 {
+	signal(SIGINT, _signalHandler);
 	if (argc != 3)
 	{
 		std::cerr << "Usage: " << argv[0] << " <port> <password>" << std::endl;
