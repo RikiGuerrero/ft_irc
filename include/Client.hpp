@@ -3,6 +3,7 @@
 
 #include <string>
 #include <sstream>
+#include <unistd.h>
 
 class Client
 {
@@ -18,12 +19,13 @@ class Client
         bool _hasUser;
     
     public:
-        Client(int fd);
+        Client(int fd, const std::string &hostname);
         ~Client();
         
         int getFd() const;
         const std::string &getNickname() const;
         const std::string &getUsername() const;
+        const std::string &getHostname() const;
 
         bool isAuthenticated() const;
         bool hasAllInfo() const;

@@ -1,6 +1,6 @@
 #include "Client.hpp"
 
-Client::Client(int fd) : _fd(fd), _authenticated(false), _hasPass(false), _hasNick(false), _hasUser(false)
+Client::Client(int fd, const std::string &hostname) : _fd(fd), _authenticated(false), _hostname(hostname), _hasPass(false), _hasNick(false), _hasUser(false)
 {}
 
 Client::~Client()
@@ -17,6 +17,10 @@ const std::string &Client::getNickname() const
 const std::string &Client::getUsername() const
 {
     return _username;
+}
+const std::string &Client::getHostname() const
+{
+   return _hostname; 
 }
 bool Client::isAuthenticated() const
 {
