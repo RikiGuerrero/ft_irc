@@ -243,9 +243,9 @@ void Server::_kick(Client *client, int clientFd, const std::string &msg)//NO TES
 	if (channelName.empty() || user.empty())
 		return _sendMessage(clientFd, ":ircserv 461" + client->getNickname() + " KICK :Not enough parameters\r\n");
 	if (!channel->isOperator(client))
-		return _sendMessage(clientFd, getError(482, client->getNickname(), channelName));
+		return _sendMessage(clientFd, ":ircserv 482" + client->getNickname() + " " + channelName + " You're not channel operator");
 	if (!channel->hasClient(client))
-		return _sendMessage(clientFd, getError(442, client->getNickname(), channelName));
+		return _sendMessage(clientFd, ":ircserv 442" + client->getNickname() + " " + channelName + " You're not on that channel");
 	
 	Client *target = NULL;//encontra o destinatario da mensagem
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
