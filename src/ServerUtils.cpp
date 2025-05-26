@@ -2,7 +2,7 @@
 
 void Server::_sendMessage(int fd, const std::string &msg)
 {
-	send(fd, msg.c_str(), msg.length(), 0);//envia uma mensagem a um fd
+	send(fd, msg.c_str(), msg.length(), 0);//envia un mensage a un fd
 }
 
 bool Server::_nicknameExists(const std::string &nickname)
@@ -29,7 +29,7 @@ void Server::_sendWelcomeMessage(int clientFd)
 
 void Server::_broadcastToChannel(const std::string &channelName, const std::string &msg, int excludeFd)
 {
-	Channel* channel = _channels[channelName];//encontra o canal desejado e envia a mensagem
+	Channel* channel = _channels[channelName];//busca el canal deseado y envia mensaje
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (channel->hasClient(it->second) && it->first != excludeFd)
@@ -37,7 +37,7 @@ void Server::_broadcastToChannel(const std::string &channelName, const std::stri
 	}
 }
 
-//INCOMPLETO
+/* //INCOMPLETO
 std::string Server::getError(int error, std::string name,  std::string sec_part)//sec_part puede ser nombre del canal o target
 {
 	std::stringstream ss;
@@ -48,4 +48,4 @@ std::string Server::getError(int error, std::string name,  std::string sec_part)
 	errors[482] = name + " " + sec_part + " :You're not channel operator\r\n";
 	errors[442] = name + " " + sec_part + " :You're not on that channel\r\n";
 
-}
+} */

@@ -45,8 +45,13 @@ class Server
 		void _join(Client *client, int clientFd, const std::string &msg);
 		void _ping(Client *client, int clientFd, const std::string &msg);
 		void _part(Client *client, int clientFd, const std::string &msg);
-		void _kick(Client *client, int clientFd, const std::string &msg);
 		void _privmsg(Client *sender, int clientFd, const std::string &msg);
+
+		//Operators funciones
+		void _invite(Client *client, int clientFd, const std::string &msg);
+		void _kick(Client *client, int clientFd, const std::string &msg);
+		void _topic(Client *client, int clientFd, const std::string &msg);
+
 
 		std::string getError(int error, std::string name,  std::string sec_part);
 		

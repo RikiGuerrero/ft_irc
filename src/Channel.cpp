@@ -39,3 +39,23 @@ void Channel::addOperator(Client *client)
 {
 	_operators.insert(client);
 }
+
+void Channel::addInvited(Client *client)
+{
+	_invited[client->getFd()] = client;
+}
+
+const std::string &Channel::getTopic() const
+{
+	return _topic;
+}
+
+void Channel::setTopicOpMode(bool mode)
+{
+	_topicOpMode = mode;
+}
+
+const bool Channel::getTopicOpMode() const
+{
+	return _topicOpMode;
+}

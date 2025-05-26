@@ -12,7 +12,7 @@ void Server::_pass(Client *client, int clientFd, const std::string &msg)
 		std::cout << "Pass is correct!\n";
 	}
 	else
-		_sendMessage(clientFd, "464 :Password incorrect\r\n");//envia mensagem ao servidor
+		_sendMessage(clientFd, "464 :Password incorrect\r\n");//envia mensaje al servidor
 }
 
 void Server::_nick(Client *client, int clientFd, const std::string &msg)
@@ -21,12 +21,9 @@ void Server::_nick(Client *client, int clientFd, const std::string &msg)
 	std::istringstream ss(msg);
 	ss >> cmd;
 	if (!client->isPassSet())
-	{
-		_sendMessage(clientFd, "451 :You have not registered\r\n");
-		return;
-	}
+		return _sendMessage(clientFd, "451 :You have not registered\r\n");
 	ss >> nick;
-	if (_nicknameExists(nick))//se nao é repetido
+	if (_nicknameExists(nick))//si no es repetido
 		_sendMessage(clientFd, "433 * " + nick + " :Nickname is already in use\r\n");
 	else
 		client->setNickname(nick);
@@ -37,24 +34,15 @@ void Server::_user(Client *client, int clientFd, const std::string &msg)
 {
 	std::istringstream ss(msg);
 	std::string username, unused, unused2, realname, cmd;
-	//los dos parame unused son opcionales, hay que gestionar eso
+	//los dos parametros unused son opcionales, hay que gestionar eso
 	if (!client->isPassSet())
-	{
-		_sendMessage(clientFd, "451 :You have not registered\r\n");
-		return;
-	}
+		return _sendMessage(clientFd, "451 :You have not registered\r\n");
 	if (client->isRegistered())
-	{
-		_sendMessage(clientFd, "462 :You may not reregister\r\n");
-		return;
-	}
+		return _sendMessage(clientFd, "462 :You may not reregister\r\n");
 	ss >> cmd >> username >> unused >> unused2;
 	std::getline(ss, realname);
 	if (username.empty() || unused.empty() || unused2.empty() || realname.empty())
-	{
-		_sendMessage(clientFd, "461 USER :Not enough parameters\r\n");
-		return;
-	}	
+		return _sendMessage(clientFd, "461 USER :Not enough parameters\r\n");	
 	if (!realname.empty() && realname[0] == ' ')
 		realname = realname.substr(1);
 	if (!realname.empty() && realname[0] == ':')
@@ -71,17 +59,17 @@ void Server::_join(Client *client, int clientFd, const std::string &msg)
 	ss >> cmd >> channelName;
 
 	if (_channels.find(channelName) == _channels.end())// si el canal no existe
-		_channels[channelName] = new Channel(channelName);//cria o canal
+		_channels[channelName] = new Channel(channelName);//crea o canal
 	
 	Channel *channel = _channels[channelName];
 
-	if (channel->hasClient(client))//se o cliente esta no canal
+	if (channel->hasClient(client))//si el cliente esta en el canal
 		return;
 	
-	channel->addClient(client);//se nao adiciona ao set dos clientes
+	channel->addClient(client);//si no adiciona al set de los clientes
 
-	if (channel->isOperator(client) == false && channel->getTopic().empty())//se o cliente nao é operador e o tópico esta vazio
-		channel->addOperator(client);//adc ao set de operadores
+	if (channel->isOperator(client) == false && channel->getTopic().empty())//si el cliente no es operador y el topico esta vacio
+		channel->addOperator(client);//adc al set de operadores
 	
 	_sendMessage(clientFd, ":" + client->getNickname() + " JOIN :" + channelName + "\r\n");
 
@@ -126,31 +114,25 @@ void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 		return;
 	}
 
-	if (target[0] == '#')//se é um canal
+	if (target[0] == '#')//si es un canal
 	{
 		if (_channels.find(target) == _channels.end())
-		{
-			_sendMessage(clientFd, ":ircserv 403 " + sender->getNickname() + " " + target + " :No such channel\r\n");
-			return;
-		}
+			return _sendMessage(clientFd, ":ircserv 403 " + sender->getNickname() + " " + target + " :No such channel\r\n");
 
 		Channel *channel = _channels[target];
 		if (!channel->hasClient(sender))
-		{
-			_sendMessage(clientFd, ":ircserv 442 " + sender->getNickname() + " " + target + " :You're not on that channel\r\n");
-			return;
-		}
+			return _sendMessage(clientFd, ":ircserv 442 " + sender->getNickname() + " " + target + " :You're not on that channel\r\n");
 
-		std::string fullMsg = prefix + target + " :" + message + "\r\n";//ajeita a mensagem
+		std::string fullMsg = prefix + target + " :" + message + "\r\n";//arregla el mensaje
 		for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
-			if (it->second != sender && channel->hasClient(it->second))//se nao for o sender
+			if (it->second != sender && channel->hasClient(it->second))//si no es el sender
 				_sendMessage(it->first, fullMsg);
 		}
 	}
 	else
 	{
-		Client *recipient = NULL;//encontra o destinatario da mensagem
+		Client *recipient = NULL;//encontra el destinatario del mensagem
 		for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
 			if (it->second->getNickname() == target)
@@ -161,12 +143,9 @@ void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 		}
 
 		if (!recipient)
-		{
-			_sendMessage(clientFd, ":ircserv 401 " + sender->getNickname() + " " + target + " :No such nick\r\n");
-			return;
-		}
+			return _sendMessage(clientFd, ":ircserv 401 " + sender->getNickname() + " " + target + " :No such nick\r\n");
 
-		std::string fullMsg = prefix + target + " :" + message + "\r\n";//ajeita a mensagem
+		std::string fullMsg = prefix + target + " :" + message + "\r\n";//arregla el mensaje
 		_sendMessage(recipient->getFd(), fullMsg);//envia
 	}
 }
@@ -191,30 +170,24 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 	ss >> cmd >> channelName >> reason;
 	std::getline(ss, reason);
 	if (reason[0] == ':')
-	reason = reason.substr(1);
+		reason = reason.substr(1);
 	if (_channels.find(channelName) == _channels.end())
-	{
-		_sendMessage(clientFd, ":ircserv 403 " + client->getNickname() + " " + channelName + " :No such channel\r\n");
-		return;
-	}
+		return _sendMessage(clientFd, ":ircserv 403 " + client->getNickname() + " " + channelName + " :No such channel\r\n");
 	
 	Channel *channel = _channels[channelName];
 	if (!channel->hasClient(client))
-	{
-		_sendMessage(clientFd, ":ircserv 442 " + client->getNickname() + " " + channelName + " :You're not on that channel\r\n");
-		return;
-	}
+		return _sendMessage(clientFd, ":ircserv 442 " + client->getNickname() + " " + channelName + " :You're not on that channel\r\n");
 	
 	std::string partMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost PART " + channelName;
 	if (!reason.empty())
 	partMsg += " :" + reason;
 	partMsg += "\r\n";
 	
-	_broadcastToChannel(channelName, partMsg, -1);//envia mensagem ao canal
+	_broadcastToChannel(channelName, partMsg, -1);//envia mensaje al canal
 	
-	channel->removeClient(client);//remove o cliente
+	channel->removeClient(client);//remove el cliente
 	
-	bool empty = true;//si o canal estiver vazio após isso remove o canal também
+	bool empty = true;//si el canal estiver vacio al final remove el canal tambien
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (channel->hasClient(it->second))
@@ -228,40 +201,6 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 		delete channel;
 		_channels.erase(channelName);
 	}
-}
-
-
-void Server::_kick(Client *client, int clientFd, const std::string &msg)//NO TESTEADO
-{	
-	std::istringstream ss(msg);
-	std::string cmd, channelName, user, reason;
-	ss >> cmd >> channelName >> user >> reason;
-
-	if (_channels.find(channelName) == _channels.end())
-		return _sendMessage(clientFd, ":ircserv 403 " + client->getNickname() + " " + channelName + " :No such channel\r\n");
-	Channel *channel = _channels[channelName];
-	if (channelName.empty() || user.empty())
-		return _sendMessage(clientFd, ":ircserv 461" + client->getNickname() + " KICK :Not enough parameters\r\n");
-	if (!channel->isOperator(client))
-		return _sendMessage(clientFd, ":ircserv 482" + client->getNickname() + " " + channelName + " You're not channel operator");
-	if (!channel->hasClient(client))
-		return _sendMessage(clientFd, ":ircserv 442" + client->getNickname() + " " + channelName + " You're not on that channel");
-	
-	Client *target = NULL;//encontra o destinatario da mensagem
-	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-	{
-		if (it->second->getNickname() == user)
-		{
-			target = it->second;
-			break;
-		}
-	}
-	if (!target)
-		return _sendMessage(clientFd, ":ircserv 441" + client->getNickname() + " " + target->getNickname() + channelName + " :They aren't on that channel");
-	if (reason.empty())
-		reason = "being too boring";
-	_broadcastToChannel(channelName, target->getNickname() + " was kicked from " + channelName + " due to " + reason);
-	_removeClient(target->getFd());
 }
 
 /* void Server::_handleNick(int clientFd, const std::string &nickname)
