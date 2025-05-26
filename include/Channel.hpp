@@ -11,7 +11,7 @@ class Channel
 	private:
 		std::string _name;
 		std::string _topic;
-		std::set<Client *> _clients;
+		std::set<Client *> _clients;//hcaer como Map
 		std::set<Client *> _operators;
 
 	public:
