@@ -51,9 +51,11 @@ class Server
 		void _invite(Client *client, int clientFd, const std::string &msg);
 		void _kick(Client *client, int clientFd, const std::string &msg);
 		void _topic(Client *client, int clientFd, const std::string &msg);
+		void _mode(Client *client, int clientFd, const std::string &msg);
+		void _modeO(Client *client, int clientFd, std::string &flag, std::string &user, Channel *channel);
+		void _modeI(Channel *channel, const std::string &flag);
 
-
-		std::string getError(int error, std::string name,  std::string sec_part);
+		//std::string getError(int error, std::string name,  std::string sec_part);
 		
 	public:
 		Server(const std::string &port, const std::string &password);

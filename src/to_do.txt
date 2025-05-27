@@ -1,0 +1,5 @@
+-> comando join, checkear si esta en modo invite only y si hace falta contraseña
+-> Testear funciones de los operadores
+-> adc \r\n en todos los _sendMessage;
+-> adc el prefixo :ircserve ERR en todos los comandos;
+-> no se si hay que enviar mensajes al cliente cada vez que un comando es ejecutado

@@ -45,17 +45,34 @@ void Channel::addInvited(Client *client)
 	_invited[client->getFd()] = client;
 }
 
-const std::string &Channel::getTopic() const
-{
-	return _topic;
-}
-
 void Channel::setTopicOpMode(bool mode)
 {
 	_topicOpMode = mode;
 }
 
-const bool Channel::getTopicOpMode() const
+bool Channel::getTopicOpMode() const
 {
 	return _topicOpMode;
+}
+
+const std::string Channel::getModes() const
+{
+	std::string result = "";
+	if (_topicOpMode)
+		result += " +t ";
+	if (_inviteOnly)
+		result += " +i ";
+	if (_keyNeed)
+		result += " +k ";
+	return result;
+}
+
+void Channel::removeOperator(Client *client)
+{
+	_operators.erase(client);
+}
+
+void Channel::setInviteOnly(bool mode)
+{
+	_inviteOnly = mode;
 }

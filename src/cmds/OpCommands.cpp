@@ -26,7 +26,7 @@ void Server::_topic(Client *client, int clientFd, const std::string &msg)//NO TE
 		if (newTopic == ":")
 		{
 			channel->setTopic("");
-			_broadcastToChannel(channelName,  "Clearing the topic on " + channelName, -1);
+			_broadcastToChannel(channelName,  "Clearing the topic on " + channelName, -1);//no se si hace falta ircserv
 		}
 		
 		else
