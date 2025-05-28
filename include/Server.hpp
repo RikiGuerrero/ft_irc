@@ -54,6 +54,9 @@ class Server
 		void _mode(Client *client, int clientFd, const std::string &msg);
 		void _modeO(Client *client, int clientFd, std::string &flag, std::string &user, Channel *channel);
 		void _modeI(Channel *channel, const std::string &flag);
+		void _modeT(Channel *channel, const std::string &flag);
+		void _modeL(Client *client, Channel *channel, const std::string &flag, const std::string &parameters);
+		void _modeK(Client *client, Channel *channel, const std::string &flag, const std::string &parameters);
 
 		//std::string getError(int error, std::string name,  std::string sec_part);
 		

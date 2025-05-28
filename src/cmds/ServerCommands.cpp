@@ -180,9 +180,7 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 	
 	std::string partMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost PART " + channelName;
 	if (!reason.empty())
-	partMsg += " :" + reason;
-	partMsg += "\r\n";
-	
+	partMsg += " :" + reason + "\r\n";	
 	_broadcastToChannel(channelName, partMsg, -1);//envia mensaje al canal
 	
 	channel->removeClient(client);//remove el cliente

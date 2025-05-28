@@ -76,3 +76,14 @@ void Channel::setInviteOnly(bool mode)
 {
 	_inviteOnly = mode;
 }
+
+void Channel::setLimit(int limit)
+{
+	_limit = limit;
+}
+
+void Channel::setPass(const std::string &pass, bool flag)
+{
+	_pass = pass;
+	_keyNeed = flag;
+}

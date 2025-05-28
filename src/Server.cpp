@@ -38,19 +38,27 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 			_pass(client, clientFd, msg);
 		else if (cmd == "NICK" || cmd == "nick")
 			_nick(client, clientFd, msg);
-		else if (cmd == "USER")
+		else if (cmd == "USER" || cmd == "user")
 			_user(client, clientFd, msg);
 	}
 	else
 	{
-		if (cmd == "JOIN")
+		if (cmd == "JOIN" || cmd == "join")
 			_join(client, clientFd, msg);//entra en el canal, falta modo invitacion
-		else if (cmd == "PRIVMSG")
+		else if (cmd == "PRIVMSG" || cmd == "privvmsg")
 			_privmsg(client, clientFd, msg);//envia un mensaje privado o a un canal
-		else if (cmd == "PING")
+		else if (cmd == "PING" || cmd == "ping")
 			_ping(client, clientFd, msg);
-		else if (cmd == "PART")//excluir un usuario de un canal
-			_part(client, clientFd, msg);
+		else if (cmd == "PART" || cmd  == "part")
+			_part(client, clientFd, msg);//excluir un usuario de un canal
+		else if (cmd == "TOPIC" || cmd == "topic")
+			_topic(client, clientFd, msg);
+		else if (cmd == "INVITE" || cmd == "invite")
+			_invite(client, clientFd, msg);
+		else if (cmd == "KICK" || cmd == "kick")
+			_kick (client, clientFd, msg);
+		else if (cmd == "MODE" || cmd == "mode")
+			_mode(client, clientFd, msg);
 	}
 
 	client->tryAuthenticate();//autentica el cliente
