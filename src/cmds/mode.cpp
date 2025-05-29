@@ -71,7 +71,6 @@ void Server::_mode(Client *client, int clientFd, const std::string &msg)
 	std::istringstream ss(msg);
 	std::string cmd, channelName, flag, parameters;
 
-	std::cout << "Entrou \n";
 	ss >> cmd >> channelName >> flag >> parameters;
 
 	if (_channels.find(channelName) == _channels.end())

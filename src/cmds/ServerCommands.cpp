@@ -76,10 +76,11 @@ void Server::_join(Client *client, int clientFd, const std::string &msg)
 		if (channel->getTotalUsers() == channel->getLimit())
 			return _sendMessage(clientFd, ":ircserv 471" + client->getNickname() + " " + channelName + " :Cannot join channel (+l)\r\n");
 	}
-/* 	if (channel->getInviteOlny())
+	if (channel->getInviteOlny())
 	{
-		if ()
-	} */
+		if (!channel->isInvited(clientFd))
+			return _sendMessage(clientFd, ":ircserv 475" + client->getNickname() + " " + channelName + " :Cannot join channel (+k)\r\n");
+	}
 	_acceptClient(channel, client, clientFd, channelName);
 }
 
@@ -87,7 +88,8 @@ void Server::_join(Client *client, int clientFd, const std::string &msg)
 void Server::_acceptClient(Channel *channel, Client *client, int clientFd, const std::string &channelName)
 {
 	channel->addClient(client);//si no adiciona al set de los clientes
-	if (!channel->isOperator(client)&& channel->getTopic().empty())//si el cliente no es operador y el topico esta vacio
+	std::cout << channel->isOperator(client) << "\n";
+	if (!channel->isOperator(client) && channel->getTotalUsers() == 1)// && channel->getTopic().empty())//si el cliente no es operador y el topico esta vacio
 		channel->addOperator(client);//adc al set de operadores
 	_sendMessage(clientFd, RPL_JOIN(client->getNickname(), client->getUsername(), client->getHostname(), channelName));//!!
 	if (channel->getTopic().empty())//set topic

@@ -4,7 +4,7 @@ void Server::_topic(Client *client, int clientFd, const std::string &msg)//NO TE
 {
 	std::istringstream ss(msg);
 	std::string cmd, channelName, newTopic;
-
+	//checkar si esta en modo de operator
 	ss >> cmd >> channelName;
 	std::getline(ss, newTopic);
 	if (channelName.empty())
@@ -22,7 +22,7 @@ void Server::_topic(Client *client, int clientFd, const std::string &msg)//NO TE
 			return _sendMessage(clientFd, ":ircserver 332 " + client->getNickname() + " " + channelName + " :" + channel->getTopic() + "\r\n");
 	}
 	else if (channel->getTopicOpMode() == true && !channel->isOperator(client))//si solo puede cambiar los operadores y el cliente no lo es
-		return _sendMessage(clientFd, ":ircserv 442 " + client->getNickname() + " " + channelName + " You're not on that channel\r\n");
+		return _sendMessage(clientFd, ":ircserv 482 " + client->getNickname() + " " + channelName + " You're not channel operator\r\n");
 	else
 	{
 		if (newTopic == ":")
