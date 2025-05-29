@@ -172,15 +172,20 @@ void Server::_handleClientMessage(int clientFd)
 	int bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);//reciber datos de un socket conectado
 	if (bytesRead <= 0)//si es == 0, el cliente se desconecto y es -1 se falha
 		return _removeClient(clientFd);
+	
+	Client *client = _clients[clientFd];
+	client->appendToBuffer(buffer);
 
-	std::string msg(buffer);//guarda todo el texto recibido
-	std::istringstream ss(msg);
-	std::string line;
-	while (std::getline(ss, line))
+	std::string &buf = client->getRecvBuffer();
+	std::size_t pos;
+
+	while ((pos = buf.find('\n')) != std::string::npos) //busca el primer \n
 	{
-		if (!line.empty() && line[line.size() - 1] == '\r')//remove retorno de carro
-			line.erase(line.size() - 1);
-		_parseCommand(clientFd, line);
+		std::string msg = buf.substr(0, pos); //corta la cadena hasta el \n
+		if (!msg.empty() && msg[msg.size() - 1] == '\r') //si el ultimo caracter es \r, lo elimina
+			msg.erase(msg.size() - 1);
+		_parseCommand(clientFd, msg); //analiza el comando
+		buf.erase(0, pos + 1); //borra el mensaje procesado del buffer
 	}
 }
 

@@ -10,6 +10,7 @@ class Client
     private:
         int _fd;
         bool _authenticated;
+        std::string _recvBuffer;
         std::string _nickname;
         std::string _username;
         std::string _hostname;
@@ -22,6 +23,9 @@ class Client
         Client(int fd, const std::string &hostname);
         ~Client();
         
+        std::string &getRecvBuffer();
+        void appendToBuffer(const std::string &data);
+
         int getFd() const;
         const std::string &getNickname() const;
         const std::string &getUsername() const;

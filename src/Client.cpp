@@ -6,6 +6,16 @@ Client::Client(int fd, const std::string &hostname) : _fd(fd), _authenticated(fa
 Client::~Client()
 {}
 
+std::string &Client::getRecvBuffer()
+{
+    return _recvBuffer;
+}
+
+void Client::appendToBuffer(const std::string &data)
+{
+    _recvBuffer.append(data);
+}
+
 int Client::getFd() const
 {
     return _fd;
