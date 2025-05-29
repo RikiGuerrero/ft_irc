@@ -33,9 +33,6 @@ class Server
 		void _removeClient(int clientFd);
 		void _parseCommand(int clientFd, const std::string &msg);
 		void _sendMessage(int fd, const std::string &msg);
-		//void _handleNick(int clientFd, const std::string &nickname);
-		//void _handleUser(int clientFd, const std::string &username);
-		void _handleQuit(int clientFd, const std::string &reason);
 		void _sendWelcomeMessage(int clientFd);
 		void _broadcastToChannel(const std::string &channel, const std::string &msg, int excludeFd = -1);
 		bool _nicknameExists(const std::string &nickname);
@@ -44,9 +41,10 @@ class Server
 		void _user(Client *client, int clientFd, const std::string &msg);
 		void _join(Client *client, int clientFd, const std::string &msg);
 		void _acceptClient(Channel *channel, Client *client, int clientFd, const std::string &channelName);
-		void _ping(Client *client, int clientFd, const std::string &msg);
+		void _ping(int clientFd, const std::string &msg);
 		void _part(Client *client, int clientFd, const std::string &msg);
 		void _privmsg(Client *sender, int clientFd, const std::string &msg);
+		void _quit(Client *client, int clientFd, const std::string &msg);
 
 		//Operators funciones
 		void _invite(Client *client, int clientFd, const std::string &msg);

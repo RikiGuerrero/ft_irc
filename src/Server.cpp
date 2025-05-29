@@ -48,7 +48,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 		else if (cmd == "PRIVMSG" || cmd == "privvmsg")
 			_privmsg(client, clientFd, msg);//envia un mensaje privado o a un canal
 		else if (cmd == "PING" || cmd == "ping")
-			_ping(client, clientFd, msg);
+			_ping(clientFd, msg);
 		else if (cmd == "PART" || cmd  == "part")
 			_part(client, clientFd, msg);//excluir un usuario de un canal
 		else if (cmd == "TOPIC" || cmd == "topic")
@@ -59,6 +59,8 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 			_kick (client, clientFd, msg);
 		else if (cmd == "MODE" || cmd == "mode")
 			_mode(client, clientFd, msg);
+		else if (cmd == "QUIT")
+			_quit(client, clientFd, msg);
 	}
 
 	client->tryAuthenticate();//autentica el cliente

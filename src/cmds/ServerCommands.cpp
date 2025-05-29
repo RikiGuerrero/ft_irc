@@ -1,4 +1,6 @@
 #include "Server.hpp"
+#include "IrcMessages.hpp"
+
 
 //posso passar ss como ponteiro.
 void Server::_pass(Client *client, int clientFd, const std::string &msg)
@@ -12,7 +14,7 @@ void Server::_pass(Client *client, int clientFd, const std::string &msg)
 		std::cout << "Pass is correct!\n";
 	}
 	else
-		_sendMessage(clientFd, "464 :Password incorrect\r\n");//envia mensaje al servidor
+		_sendMessage(clientFd, ERR_PASSWDMISMATCH);//envia mensaje al servidor
 }
 
 void Server::_nick(Client *client, int clientFd, const std::string &msg)
@@ -21,13 +23,13 @@ void Server::_nick(Client *client, int clientFd, const std::string &msg)
 	std::istringstream ss(msg);
 	ss >> cmd;
 	if (!client->isPassSet())
-		return _sendMessage(clientFd, "451 :You have not registered\r\n");
+		return _sendMessage(clientFd, ERR_NOTREGISTERED);
 	ss >> nick;
 	if (_nicknameExists(nick))//si no es repetido
-		_sendMessage(clientFd, "433 * " + nick + " :Nickname is already in use\r\n");
+		_sendMessage(clientFd, ERR_NICKNAMEINUSE(nick));
 	else
 		client->setNickname(nick);
-	std::cout << "Nick: " << client->getNickname() << " is setted!\n"; 
+	//std::cout << "Nick: " << client->getNickname() << " is setted!\n"; 
 }
 
 void Server::_user(Client *client, int clientFd, const std::string &msg)
@@ -36,20 +38,20 @@ void Server::_user(Client *client, int clientFd, const std::string &msg)
 	std::string username, unused, unused2, realname, cmd;
 	//los dos parametros unused son opcionales, hay que gestionar eso
 	if (!client->isPassSet())
-		return _sendMessage(clientFd, "451 :You have not registered\r\n");
+		return _sendMessage(clientFd, ERR_NOTREGISTERED);
 	if (client->isRegistered())
-		return _sendMessage(clientFd, "462 :You may not reregister\r\n");
+		return _sendMessage(clientFd, ERR_ALREADYREGISTRED);
 	ss >> cmd >> username >> unused >> unused2;
 	std::getline(ss, realname);
 	if (username.empty() || unused.empty() || unused2.empty() || realname.empty())
-		return _sendMessage(clientFd, "461 USER :Not enough parameters\r\n");	
+		return _sendMessage(clientFd, ERR_NEEDMOREPARAMS(client->getNickname(), "USER"));	
 	if (!realname.empty() && realname[0] == ' ')
 		realname = realname.substr(1);
 	if (!realname.empty() && realname[0] == ':')
 		realname = realname.substr(1);
 	client->setUsername(username);
 	client->setRealname(realname);
-	std::cout << "User: " << client->getUsername() << " is setted!\n"; 
+	//std::cout << "User: " << client->getUsername() << " is setted!\n"; 
 }
 
 void Server::_join(Client *client, int clientFd, const std::string &msg)
@@ -87,12 +89,12 @@ void Server::_acceptClient(Channel *channel, Client *client, int clientFd, const
 	channel->addClient(client);//si no adiciona al set de los clientes
 	if (!channel->isOperator(client)&& channel->getTopic().empty())//si el cliente no es operador y el topico esta vacio
 		channel->addOperator(client);//adc al set de operadores
-	_sendMessage(clientFd, ":" + client->getNickname() + " JOIN :" + channelName + "\r\n");
+	_sendMessage(clientFd, RPL_JOIN(client->getNickname(), client->getUsername(), client->getHostname(), channelName));//!!
 	if (channel->getTopic().empty())//set topic
 		_sendMessage(clientFd, ":ircserv 331 " + client->getNickname() + " " + channelName + " :No topic is set\r\n");
 	else
 		_sendMessage(clientFd, ":ircserv 332 " + client->getNickname() + " " + channelName + " :" + channel->getTopic() + "\r\n");
-	std::string names = ":ircserv 353 " + client->getNickname() + " = " + channelName + " :";
+	std::string names = RPL_NAMREPLY(channelName);
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (channel->hasClient(it->second))
@@ -105,7 +107,7 @@ void Server::_acceptClient(Channel *channel, Client *client, int clientFd, const
 	}
 	names += "\r\n";
 	_sendMessage(clientFd, names);
-	_sendMessage(clientFd, ":ircserv 366 " + client->getNickname() + " " + channelName + " :End of NAMES list\r\n");
+	_sendMessage(clientFd, RPL_ENDOFNAMES(client->getNickname(), channelName));
 	_broadcastToChannel(channelName, client->getPrefix() + " JOIN :" + channelName + "\r\n", clientFd);//transmissao ao canal
 }
 
@@ -129,11 +131,11 @@ void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 	if (target[0] == '#')//si es un canal
 	{
 		if (_channels.find(target) == _channels.end())
-			return _sendMessage(clientFd, ":ircserv 403 " + sender->getNickname() + " " + target + " :No such channel\r\n");
+			return _sendMessage(clientFd, ERR_NOSUCHCHANNEL(sender->getNickname(), target));
 
 		Channel *channel = _channels[target];
 		if (!channel->hasClient(sender))
-			return _sendMessage(clientFd, ":ircserv 442 " + sender->getNickname() + " " + target + " :You're not on that channel\r\n");
+			return _sendMessage(clientFd, ERR_NOTONCHANNEL(sender->getNickname(), target));
 
 		std::string fullMsg = prefix + target + " :" + message + "\r\n";//arregla el mensaje
 		for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
@@ -155,14 +157,14 @@ void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 		}
 
 		if (!recipient)
-			return _sendMessage(clientFd, ":ircserv 401 " + sender->getNickname() + " " + target + " :No such nick\r\n");
+			return _sendMessage(clientFd, ERR_NOSUCHNICK(sender->getNickname(), target));
 
 		std::string fullMsg = prefix + target + " :" + message + "\r\n";//arregla el mensaje
 		_sendMessage(recipient->getFd(), fullMsg);//envia
 	}
 }
 
-void Server::_ping(Client *client, int clientFd, const std::string &msg)
+void Server::_ping(int clientFd, const std::string &msg)
 {
 	std::istringstream ss(msg);
 	std::string cmd, token;
@@ -171,7 +173,7 @@ void Server::_ping(Client *client, int clientFd, const std::string &msg)
 	if (!token.empty() && token[0] == ':')
 		token = token.substr(1);
 	if (!token.empty())
-		_sendMessage(clientFd, ":" + client->getNickname() + " PONG :" + token + "\r\n");
+		_sendMessage(clientFd, RPL_PONG(token));
 }
 
 void Server::_part(Client *client, int clientFd, const std::string &msg)
@@ -184,15 +186,16 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 	if (reason[0] == ':')
 		reason = reason.substr(1);
 	if (_channels.find(channelName) == _channels.end())
-		return _sendMessage(clientFd, ":ircserv 403 " + client->getNickname() + " " + channelName + " :No such channel\r\n");
+		return _sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
 	
 	Channel *channel = _channels[channelName];
 	if (!channel->hasClient(client))
-		return _sendMessage(clientFd, ":ircserv 442 " + client->getNickname() + " " + channelName + " :You're not on that channel\r\n");
+		return _sendMessage(clientFd, ERR_NOTONCHANNEL(client->getNickname(), channelName));
 	
 	std::string partMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost PART " + channelName;
 	if (!reason.empty())
-	partMsg += " :" + reason + "\r\n";	
+		partMsg += " :" + reason;
+	partMsg += "\r\n";
 	_broadcastToChannel(channelName, partMsg, -1);//envia mensaje al canal
 	
 	channel->removeClient(client);//remove el cliente
@@ -213,27 +216,16 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 	}
 }
 
-/* void Server::_handleNick(int clientFd, const std::string &nickname)
+void Server::_quit(Client *client, int clientFd, const std::string &msg)
 {
-	Client *client = _clients[clientFd];
-	client->setNickname(nickname);
 
-	if (client->isRegistered())
-		_sendWelcomeMessage(clientFd);
-} */
+	std::istringstream ss(msg);
+	std::string cmd, reason;
 
-/* void Server::_handleUser(int clientFd, const std::string &username)
-{
-	Client *client = _clients[clientFd];
-	client->setUsername(username);
-
-	if (client->isRegistered())
-		_sendWelcomeMessage(clientFd);
-} */
-
-/* void Server::_handleQuit(int clientFd, const std::string &reason)
-{
-	Client *client = _clients[clientFd];
+	ss >> cmd;
+	std::getline(ss, reason);
+	if (reason[0] == ':')
+		reason = reason.substr(1);
 	std::string quitMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost QUIT";
 	if (!reason.empty())
 		quitMsg += " :" + reason;
@@ -272,8 +264,5 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 	}
 	
 	_sendMessage(clientFd, quitMsg);
-	close(clientFd);
-	delete client;
-	_clients.erase(clientFd);
+	_removeClient(clientFd);
 }
- */

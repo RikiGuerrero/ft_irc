@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "IrcMessages.hpp"
 
 void Server::_sendMessage(int fd, const std::string &msg)
 {
@@ -19,17 +20,15 @@ void Server::_sendWelcomeMessage(int clientFd)
 {
 	Client *client = _clients[clientFd];
 	const std::string &nick = client->getNickname();
-	const std::string &user = client->getUsername();
+	const std::string &username = client->getUsername();
+	const std::string &hostname = client->getHostname();
 
-	_sendMessage(clientFd, ":ircserv 001 " + nick + " :Welcome to the IRC server " + nick + "!" + user + "@localhost\r\n");
-	_sendMessage(clientFd, ":ircserv 002 " + nick + " :Your host is ircserv, running version 1.0\r\n");
-	_sendMessage(clientFd, ":ircserv 003 " + nick + " :This server was created just now\r\n");
-	_sendMessage(clientFd, ":ircserv 376 " + nick + " :End of MOTD command\r\n");
+	_sendMessage(clientFd, RPL_WELCOME(nick, username, hostname));
 }
 
 void Server::_broadcastToChannel(const std::string &channelName, const std::string &msg, int excludeFd)
 {
-	Channel* channel = _channels[channelName];//busca el canal deseado y envia mensaje
+	Channel* channel = _channels[channelName];
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (channel->hasClient(it->second) && it->first != excludeFd)
