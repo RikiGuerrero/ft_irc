@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "IrcMessages.hpp"
 
 void Server::_parseCommand(int clientFd, const std::string &msg)
 {
@@ -18,19 +19,19 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 			if (pass == _password)
 				client->setPass(true);
 			else
-				_sendMessage(clientFd, "464 :Password incorrect\r\n");
+				_sendMessage(clientFd, ERR_PASSWDMISMATCH);
 		}
 		else if (cmd == "NICK")
 		{
 			if (!client->isPassSet())
 			{
-				_sendMessage(clientFd, "451 :You have not registered\r\n");
+				_sendMessage(clientFd, ERR_NOTREGISTERED);
 				return;
 			}
 			std::string nick;
 			ss >> nick;
 			if (_nicknameExists(nick))
-				_sendMessage(clientFd, "433 * " + nick + " :Nickname is already in use\r\n");
+				_sendMessage(clientFd, ERR_NICKNAMEINUSE(nick));
 			else
 				client->setNickname(nick);
 		}
@@ -38,12 +39,12 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 		{
 			if (!client->isPassSet())
 			{
-				_sendMessage(clientFd, "451 :You have not registered\r\n");
+				_sendMessage(clientFd, ERR_NOTREGISTERED);
 				return;
 			}
 			if (client->isRegistered())
 			{
-				_sendMessage(clientFd, "462 :You may not reregister\r\n");
+				_sendMessage(clientFd, ERR_ALREADYREGISTRED);
 				return;
 			}
 			std::string username, unused, unused2, realname;
@@ -51,7 +52,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 			std::getline(ss, realname);
 			if (username.empty() || unused.empty() || unused2.empty() || realname.empty())
 			{
-				_sendMessage(clientFd, "461 USER :Not enough parameters\r\n");
+				_sendMessage(clientFd, ERR_NEEDMOREPARAMS(client->getNickname(), "USER"));
 				return;
 			}
 
@@ -87,7 +88,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 			if (!token.empty() && token[0] == ':')
 				token = token.substr(1);
 			if (!token.empty())
-				_sendMessage(clientFd, ":" + client->getNickname() + " PONG :" + token + "\r\n");
+				_sendMessage(clientFd, RPL_PONG(token));
 		}
 		else if (cmd == "PART")
 		{
@@ -97,6 +98,14 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 			if (reason[0] == ':')
 				reason = reason.substr(1);
 			_handlePart(clientFd, channel, reason);
+		}
+		else if (cmd == "QUIT")
+		{
+			std::string reason;
+			std::getline(ss, reason);
+			if (reason[0] == ':')
+				reason = reason.substr(1);
+			_handleQuit(clientFd, reason);
 		}
 	}
 
@@ -141,14 +150,9 @@ void Server::_handleJoin(int clientFd, const std::string &channelName)
 	if (channel->isOperator(client) == false && channel->getTopic().empty())
 		channel->addOperator(client);
 	
-	_sendMessage(clientFd, ":" + client->getNickname() + " JOIN :" + channelName + "\r\n");
-
-	if (channel->getTopic().empty())
-		_sendMessage(clientFd, ":ircserv 331 " + client->getNickname() + " " + channelName + " :No topic is set\r\n");
-	else
-		_sendMessage(clientFd, ":ircserv 332 " + client->getNickname() + " " + channelName + " :" + channel->getTopic() + "\r\n");
+	_sendMessage(clientFd, RPL_JOIN(client->getNickname(), client->getUsername(), client->getHostname(), channelName));
 	
-	std::string names = ":ircserv 353 " + client->getNickname() + " = " + channelName + " :";
+	std::string names = RPL_NAMREPLY(channelName);
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (channel->hasClient(it->second))
@@ -161,7 +165,7 @@ void Server::_handleJoin(int clientFd, const std::string &channelName)
 	names += "\r\n";
 	_sendMessage(clientFd, names);
 
-	_sendMessage(clientFd, ":ircserv 366 " + client->getNickname() + " " + channelName + " :End of NAMES list\r\n");
+	_sendMessage(clientFd, RPL_ENDOFNAMES(client->getNickname(), channelName));
 
 	_broadcastToChannel(channelName, client->getPrefix() + " JOIN :" + channelName + "\r\n", clientFd);
 }
@@ -169,11 +173,11 @@ void Server::_handleJoin(int clientFd, const std::string &channelName)
 void Server::_handlePrivmsg(int clientFd, const std::string &target, const std::string &message)
 {
 	Client *sender = _clients[clientFd];
-	std::string prefix = ":" + sender->getNickname() + "!" + sender->getUsername() + "@localhost PRIVMSG ";
+	std::string prefix = ":" + sender->getNickname() + "!" + sender->getUsername() + "@localhost ";
 
 	if (target.empty() || message.empty())
 	{
-		_sendMessage(clientFd, ":ircserv 411 " + sender->getNickname() + " :No recipient given (PRIVMSG)\r\n");
+		_sendMessage(clientFd, ERR_NEEDMOREPARAMS(sender->getNickname(), "PRIVMSG"));
 		return;
 	}
 
@@ -181,14 +185,14 @@ void Server::_handlePrivmsg(int clientFd, const std::string &target, const std::
 	{
 		if (_channels.find(target) == _channels.end())
 		{
-			_sendMessage(clientFd, ":ircserv 403 " + sender->getNickname() + " " + target + " :No such channel\r\n");
+			_sendMessage(clientFd, ERR_NOSUCHCHANNEL(sender->getNickname(), target));
 			return;
 		}
 
 		Channel *channel = _channels[target];
 		if (!channel->hasClient(sender))
 		{
-			_sendMessage(clientFd, ":ircserv 442 " + sender->getNickname() + " " + target + " :You're not on that channel\r\n");
+			_sendMessage(clientFd, ERR_NOTONCHANNEL(sender->getNickname(), target));
 			return;
 		}
 
@@ -213,7 +217,7 @@ void Server::_handlePrivmsg(int clientFd, const std::string &target, const std::
 
 		if (!recipient)
 		{
-			_sendMessage(clientFd, ":ircserv 401 " + sender->getNickname() + " " + target + " :No such nick\r\n");
+			_sendMessage(clientFd, ERR_NOSUCHNICK(sender->getNickname(), target));
 			return;
 		}
 
@@ -228,14 +232,14 @@ void Server::_handlePart(int clientFd, const std::string &channelName, const std
 
 	if (_channels.find(channelName) == _channels.end())
 	{
-		_sendMessage(clientFd, ":ircserv 403 " + client->getNickname() + " " + channelName + " :No such channel\r\n");
+		_sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
 		return;
 	}
 
 	Channel *channel = _channels[channelName];
 	if (!channel->hasClient(client))
 	{
-		_sendMessage(clientFd, ":ircserv 442 " + client->getNickname() + " " + channelName + " :You're not on that channel\r\n");
+		_sendMessage(clientFd, ERR_NOTONCHANNEL(client->getNickname(), channelName));
 		return;
 	}
 
@@ -305,21 +309,17 @@ void Server::_handleQuit(int clientFd, const std::string &reason)
 	}
 	
 	_sendMessage(clientFd, quitMsg);
-	close(clientFd);
-	delete client;
-	_clients.erase(clientFd);
+	_removeClient(clientFd);
 }
 
 void Server::_sendWelcomeMessage(int clientFd)
 {
 	Client *client = _clients[clientFd];
 	const std::string &nick = client->getNickname();
-	const std::string &user = client->getUsername();
+	const std::string &username = client->getUsername();
+	const std::string &hostname = client->getHostname();
 
-	_sendMessage(clientFd, ":ircserv 001 " + nick + " :Welcome to the IRC server " + nick + "!" + user + "@localhost\r\n");
-	_sendMessage(clientFd, ":ircserv 002 " + nick + " :Your host is ircserv, running version 1.0\r\n");
-	_sendMessage(clientFd, ":ircserv 003 " + nick + " :This server was created just now\r\n");
-	_sendMessage(clientFd, ":ircserv 376 " + nick + " :End of MOTD command\r\n");
+	_sendMessage(clientFd, RPL_WELCOME(nick, username, hostname));
 }
 
 void Server::_broadcastToChannel(const std::string &channelName, const std::string &msg, int excludeFd)
