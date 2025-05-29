@@ -89,7 +89,7 @@ void Server::_initSocket()
 	struct sockaddr_in serverAddr;//estructura para representar direcciones IPv4
 	std::memset(&serverAddr, 0, sizeof(serverAddr));
 	serverAddr.sin_family = AF_INET;//IPv4
-	serverAddr.sin_addr.s_addr = INADDR_ANY;//acepta conecciones en cualquier interface
+	serverAddr.sin_addr.s_addr = INADDR_ANY;//acepta conecciones en cualquier interfaz
 	serverAddr.sin_port = htons(_port);//puerto
 
 	if (bind(_serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)//asocia un socket a una dirección y un puerto especifico, permite oyer y aceptar coneccion en ese puerto

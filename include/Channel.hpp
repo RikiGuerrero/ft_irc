@@ -28,9 +28,15 @@ class Channel
 		const std::string &getName() const;
 		const std::string &getTopic() const;
 		const std::string getModes() const;
+		const std::string &getPass() const;
+		int getLimit() const;
 		bool getTopicOpMode() const;
+		bool getInviteOlny() const;
+		bool getKeyNeed() const;
+		int getTotalUsers() const;
 		bool hasClient(Client *client) const;
 		bool isOperator(Client *client) const;
+		bool isInvited (int clientFd) const;
 
 
 		void addClient(Client *client);

@@ -43,6 +43,7 @@ class Server
 		void _nick(Client *client, int clientFd, const std::string &msg);
 		void _user(Client *client, int clientFd, const std::string &msg);
 		void _join(Client *client, int clientFd, const std::string &msg);
+		void _acceptClient(Channel *channel, Client *client, int clientFd, const std::string &channelName);
 		void _ping(Client *client, int clientFd, const std::string &msg);
 		void _part(Client *client, int clientFd, const std::string &msg);
 		void _privmsg(Client *sender, int clientFd, const std::string &msg);

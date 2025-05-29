@@ -24,8 +24,6 @@ void Server::_modeO(Client *client, int clientFd, std::string &flag, std::string
 		channel->addOperator(target);
 	else if (flag[0] == '-')
 		channel->removeOperator(target);
-
-
 }
 
 void Server::_modeI(Channel *channel, const std::string &flag)

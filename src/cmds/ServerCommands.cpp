@@ -53,36 +53,51 @@ void Server::_user(Client *client, int clientFd, const std::string &msg)
 }
 
 void Server::_join(Client *client, int clientFd, const std::string &msg)
-{
-	std::string cmd, channelName;
+{//entrada com senha JOIN #canal senha, límite de usuarios no canal e invite only mode
+	std::string cmd, channelName, pass;
 	std::istringstream ss(msg);
-	ss >> cmd >> channelName;
+	ss >> cmd >> channelName >> pass;
 
 	if (_channels.find(channelName) == _channels.end())// si el canal no existe
 		_channels[channelName] = new Channel(channelName);//crea o canal
-	
 	Channel *channel = _channels[channelName];
-
 	if (channel->hasClient(client))//si el cliente esta en el canal
 		return;
-	
+
+	if (channel->getKeyNeed())
+	{
+		if (pass != channel->getPass() || pass.empty())
+			return _sendMessage(clientFd, ":ircserv 475" + client->getNickname() + " " + channelName + " :Cannot join channel (+k)\r\n");
+	}
+	if (channel->getLimit() != -1)
+	{
+		if (channel->getTotalUsers() == channel->getLimit())
+			return _sendMessage(clientFd, ":ircserv 471" + client->getNickname() + " " + channelName + " :Cannot join channel (+l)\r\n");
+	}
+/* 	if (channel->getInviteOlny())
+	{
+		if ()
+	} */
+	_acceptClient(channel, client, clientFd, channelName);
+}
+
+
+void Server::_acceptClient(Channel *channel, Client *client, int clientFd, const std::string &channelName)
+{
 	channel->addClient(client);//si no adiciona al set de los clientes
-
-	if (channel->isOperator(client) == false && channel->getTopic().empty())//si el cliente no es operador y el topico esta vacio
+	if (!channel->isOperator(client)&& channel->getTopic().empty())//si el cliente no es operador y el topico esta vacio
 		channel->addOperator(client);//adc al set de operadores
-	
 	_sendMessage(clientFd, ":" + client->getNickname() + " JOIN :" + channelName + "\r\n");
-
 	if (channel->getTopic().empty())//set topic
 		_sendMessage(clientFd, ":ircserv 331 " + client->getNickname() + " " + channelName + " :No topic is set\r\n");
 	else
 		_sendMessage(clientFd, ":ircserv 332 " + client->getNickname() + " " + channelName + " :" + channel->getTopic() + "\r\n");
-	
 	std::string names = ":ircserv 353 " + client->getNickname() + " = " + channelName + " :";
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (channel->hasClient(it->second))
 		{
+	
 			if (channel->isOperator(it->second))
 				names += "@";
 			names += it->second->getNickname() + " ";
@@ -90,12 +105,9 @@ void Server::_join(Client *client, int clientFd, const std::string &msg)
 	}
 	names += "\r\n";
 	_sendMessage(clientFd, names);
-
 	_sendMessage(clientFd, ":ircserv 366 " + client->getNickname() + " " + channelName + " :End of NAMES list\r\n");
-
 	_broadcastToChannel(channelName, client->getPrefix() + " JOIN :" + channelName + "\r\n", clientFd);//transmissao ao canal
 }
-
 
 void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 {

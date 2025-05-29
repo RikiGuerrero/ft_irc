@@ -1,7 +1,7 @@
 #include "Channel.hpp"
 #include "Client.hpp"
 
-Channel::Channel(const std::string &name) : _name(name), _topic("") {}
+Channel::Channel(const std::string &name) : _name(name), _topic(""), _limit(-1), _topicOpMode(false),  _inviteOnly(false), _keyNeed(false) {}
 Channel::~Channel() {}
 
 const std::string &Channel::getName() const
@@ -86,4 +86,36 @@ void Channel::setPass(const std::string &pass, bool flag)
 {
 	_pass = pass;
 	_keyNeed = flag;
+}
+
+const std::string &Channel::getPass() const
+{
+	return _pass;
+}
+
+bool Channel::getInviteOlny() const
+{
+	return _inviteOnly;
+}
+
+bool Channel::getKeyNeed() const
+{
+	return _keyNeed;
+}
+
+int Channel::getLimit() const
+{
+	return _limit;
+}
+
+int Channel::getTotalUsers() const
+{
+	return _clients.size();
+}
+
+bool Channel::isInvited(int clientFd) const
+{
+	if (_invited.find(clientFd) == _invited.end())
+		return false;
+	return true;
 }
