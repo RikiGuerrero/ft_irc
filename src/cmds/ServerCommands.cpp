@@ -69,17 +69,18 @@ void Server::_join(Client *client, int clientFd, const std::string &msg)
 	if (channel->getKeyNeed())
 	{
 		if (pass != channel->getPass() || pass.empty())
-			return _sendMessage(clientFd, ":ircserv 475" + client->getNickname() + " " + channelName + " :Cannot join channel (+k)\r\n");
+			return _sendMessage(clientFd, ERR_BADCHANNELKEY(client->getNickname(), channelName));
 	}
 	if (channel->getLimit() != -1)
 	{
 		if (channel->getTotalUsers() == channel->getLimit())
-			return _sendMessage(clientFd, ":ircserv 471" + client->getNickname() + " " + channelName + " :Cannot join channel (+l)\r\n");
+			return _sendMessage(clientFd, ERR_CHANNELISFULL(client->getNickname(), channelName));
 	}
-/* 	if (channel->getInviteOlny())
+	if (channel->getInviteOlny())
 	{
-		if ()
-	} */
+		if (!channel->isInvited(clientFd))
+			return _sendMessage(clientFd, ERR_INVITEONLYCHAN(client->getNickname(), channelName));
+	}
 	_acceptClient(channel, client, clientFd, channelName);
 }
 
@@ -87,14 +88,14 @@ void Server::_join(Client *client, int clientFd, const std::string &msg)
 void Server::_acceptClient(Channel *channel, Client *client, int clientFd, const std::string &channelName)
 {
 	channel->addClient(client);//si no adiciona al set de los clientes
-	if (!channel->isOperator(client)&& channel->getTopic().empty())//si el cliente no es operador y el topico esta vacio
+	if (!channel->isOperator(client) && channel->getTotalUsers() == 1)// && channel->getTopic().empty())//si el cliente no es operador y el topico esta vacio
 		channel->addOperator(client);//adc al set de operadores
-	_sendMessage(clientFd, RPL_JOIN(client->getNickname(), client->getUsername(), client->getHostname(), channelName));//!!
+	_sendMessage(clientFd, RPL_JOIN(client->getNickname(), client->getUsername(), client->getHostname(), channelName));
 	if (channel->getTopic().empty())//set topic
-		_sendMessage(clientFd, ":ircserv 331 " + client->getNickname() + " " + channelName + " :No topic is set\r\n");
+		_sendMessage(clientFd, RPL_NOTOPIC(client->getNickname(), channelName));
 	else
-		_sendMessage(clientFd, ":ircserv 332 " + client->getNickname() + " " + channelName + " :" + channel->getTopic() + "\r\n");
-	std::string names = RPL_NAMREPLY(channelName);
+		_sendMessage(clientFd, RPL_TOPIC(client->getNickname(), channelName, channel->getTopic()));
+	std::string names = RPL_NAMREPLY(client->getNickname(), channelName);
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (channel->hasClient(it->second))
@@ -124,7 +125,7 @@ void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 
 	if (target.empty() || message.empty())
 	{
-		_sendMessage(clientFd, ":ircserv 411 " + sender->getNickname() + " :No recipient given (PRIVMSG)\r\n");
+		_sendMessage(clientFd, ERR_NORECIPIENT(sender->getNickname(), "PRIVMSG"));
 		return;
 	}
 
@@ -206,6 +207,7 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 		if (channel->hasClient(it->second))
 		{
 			empty = false;
+			channel->addOperator(it->second);
 			break;
 		}
 	}

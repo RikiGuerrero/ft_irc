@@ -1,4 +1,5 @@
 -> comando join, checkear si esta en modo invite only, si hace falta contraseña y el limite de users/
--> Testear funciones de los operadores
--> adc el prefixo :ircserve ERR en todos los comandos;
--> no se si hay que enviar mensajes al cliente cada vez que un comando es ejecutado
+-> ping pong 
+-> cambiar operador cuAndo solo esta un cliente en el canal (OPERADOR SE VA)
+-> mensaje al hexchat (join)
+-> as veces no encontra un usuario en el mode por ejemplo

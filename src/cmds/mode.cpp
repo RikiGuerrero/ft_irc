@@ -1,15 +1,16 @@
 #include "Server.hpp"
+#include "IrcMessages.hpp"
 
 
 void Server::_modeO(Client *client, int clientFd, std::string &flag, std::string &user, Channel *channel)
 {
 	Client *target = NULL;//encontra el target del mensaje
 	if (user.empty())
-		return _sendMessage(clientFd, ":ircserv 461 " + client->getNickname() + " MODE :Not enough parameters\r\n");	
+		return _sendMessage(clientFd, ERR_NEEDMOREPARAMS(client->getNickname(), "MODE +o"));	
 	if (!channel->isOperator(client))
-		return _sendMessage(clientFd, ":ircserv 482 " + client->getNickname() + " " + channel->getName() + " :You're not channel operator\r\n");
+		return _sendMessage(clientFd, ERR_CHANOPRIVSNEEDED(client->getNickname(), channel->getName()));
 	if (!channel->hasClient(client))
-		return _sendMessage(clientFd, ":ircserv 442 " + client->getNickname() + " " + channel->getName() + " :You're not on that channel\r\n");
+		return _sendMessage(clientFd, ERR_NOTONCHANNEL(client->getNickname(), channel->getName()));
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (it->second->getNickname() == user)
@@ -18,8 +19,9 @@ void Server::_modeO(Client *client, int clientFd, std::string &flag, std::string
 			break;
 		}
 	}
-	if (channel->hasClient(target))
-		return _sendMessage(clientFd, ":ircserv 441 " + client->getNickname() + " " + target->getNickname() + " " + channel->getName() + " :They aren't on that channel\r\n");
+	//std::cout << target->getNickname() << std::endl;
+	if (!target || !channel->hasClient(target))
+		return _sendMessage(clientFd, ERR_USERNOTINCHANNEL(client->getNickname(), target->getNickname(), channel->getName()));
 	if (flag[0] == '+')
 		channel->addOperator(target);
 	else if (flag[0] == '-')
@@ -47,7 +49,7 @@ void Server::_modeL(Client *client, Channel *channel, const std::string &flag, c
 	if (flag[0] == '+')
 	{
 		if (parameters.empty())
-			return _sendMessage(client->getFd(), ":ircserv 461 " + client->getNickname() + " MODE +l :Not enough parameters\r\n");
+			return _sendMessage(client->getFd(), ERR_NEEDMOREPARAMS(client->getNickname(), " MODE +l"));
 		channel->setLimit(atoi(parameters.c_str()));
 	}
 	else if (flag[0] == '-')
@@ -59,7 +61,7 @@ void Server::_modeK(Client *client, Channel *channel, const std::string &flag, c
 	if (flag[0] == '+')
 	{
 		if (parameters.empty())
-			return _sendMessage(client->getFd(), ":ircserv 461 " + client->getNickname() + " MODE +k :Not enough parameters\r\n");
+			return _sendMessage(client->getFd(), ERR_NEEDMOREPARAMS(client->getNickname(), " MODE +k"));
 		channel->setPass(parameters, true);
 	}
 	else if (flag[0] == '-')
@@ -71,16 +73,15 @@ void Server::_mode(Client *client, int clientFd, const std::string &msg)
 	std::istringstream ss(msg);
 	std::string cmd, channelName, flag, parameters;
 
-	std::cout << "Entrou \n";
 	ss >> cmd >> channelName >> flag >> parameters;
 
 	if (_channels.find(channelName) == _channels.end())
-		return _sendMessage(clientFd, ":ircserv 403 " + client->getNickname() + " " + channelName + " :No such channel\r\n");
+		return _sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
 	Channel *channel = _channels[channelName];
 	if (!channel->isOperator(client))//esos comandos son especificos del operador
-		return _sendMessage(clientFd, ":ircserv 482 " + client->getNickname() + " " + channelName + " You're not channel operator\r\n");
+		return _sendMessage(clientFd, ERR_CHANOPRIVSNEEDED(client->getNickname(), channelName));
 	if (flag.empty())
-		return _sendMessage(clientFd, ":ircserv 324 "+ client->getNickname() + " " + channelName  + channel->getModes() + "\r\n");
+		return _sendMessage(clientFd, RPL_CHANNELMODES(client->getNickname(), channelName, channel->getModes()));
 	if (flag[1] == 'o')
 		return _modeO(client, clientFd, flag, parameters, channel);
 	if (flag[1] == 'i')

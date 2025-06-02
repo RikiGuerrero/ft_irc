@@ -77,3 +77,4 @@ std::string Client::getPrefix() const
     oss << ":" << _nickname << "!" << _username << "@" << _hostname;
     return oss.str();
 }
+
