@@ -19,13 +19,14 @@ void Server::_modeO(Client *client, int clientFd, std::string &flag, std::string
 			break;
 		}
 	}
-	//std::cout << target->getNickname() << std::endl;
-	if (!target || !channel->hasClient(target))
-		return _sendMessage(clientFd, ERR_USERNOTINCHANNEL(client->getNickname(), target->getNickname(), channel->getName()));
+	if (!target)
+		return _sendMessage(clientFd, ERR_USERNOTINCHANNEL(client->getNickname(), user, channel->getName()));
 	if (flag[0] == '+')
 		channel->addOperator(target);
 	else if (flag[0] == '-')
 		channel->removeOperator(target);
+	//_sendMessage(clientFd, ":ft_irc MODE " + channel->getName() + " " + flag + " " + user + "\r\n");
+	_broadcastToChannel(channel->getName(), ":ft_irc MODE " + channel->getName() + " " + flag + " " + user + "\r\n");
 }
 
 void Server::_modeI(Channel *channel, const std::string &flag)
@@ -74,14 +75,13 @@ void Server::_mode(Client *client, int clientFd, const std::string &msg)
 	std::string cmd, channelName, flag, parameters;
 
 	ss >> cmd >> channelName >> flag >> parameters;
-
 	if (_channels.find(channelName) == _channels.end())
-		return _sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
+	return _sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
 	Channel *channel = _channels[channelName];
 	if (!channel->isOperator(client))//esos comandos son especificos del operador
-		return _sendMessage(clientFd, ERR_CHANOPRIVSNEEDED(client->getNickname(), channelName));
+	return _sendMessage(clientFd, ERR_CHANOPRIVSNEEDED(client->getNickname(), channelName));
 	if (flag.empty())
-		return _sendMessage(clientFd, RPL_CHANNELMODES(client->getNickname(), channelName, channel->getModes()));
+	return _sendMessage(clientFd, RPL_CHANNELMODES(client->getNickname(), channelName, channel->getModes()));
 	if (flag[1] == 'o')
 		return _modeO(client, clientFd, flag, parameters, channel);
 	if (flag[1] == 'i')

@@ -3,3 +3,5 @@
 -> cambiar operador cuAndo solo esta un cliente en el canal (OPERADOR SE VA)
 -> mensaje al hexchat (join)
 -> as veces no encontra un usuario en el mode por ejemplo
+->borrar cliente de los initados y operadores
+-> eniar mensajes avisando cambios en el mode
