@@ -9,10 +9,7 @@ void Server::_pass(Client *client, int clientFd, const std::string &msg)
 	std::string pass, cmd; 
 	ss >> cmd >> pass;
 	if (pass == _password)
-	{
 		client->setPass(true);
-		std::cout << "Pass is correct!\n";
-	}
 	else
 		_sendMessage(clientFd, ERR_PASSWDMISMATCH);//envia mensaje al servidor
 }
@@ -118,9 +115,11 @@ void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 	std::istringstream ss(msg);
 	std::string prefix = ":" + sender->getNickname() + "!" + sender->getUsername() + "@localhost PRIVMSG ";
 
-	ss >> cmd >> target >> message;
+	ss >> cmd >> target;
 	std::getline(ss, message);
-	if (message[0] == ':')
+	if (!message.empty() && message[0] == ' ')
+		message = message.substr(1);
+	if (!message.empty() && message[0] == ':')
 		message = message.substr(1);
 
 	if (target.empty() || message.empty())
@@ -159,8 +158,7 @@ void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 
 		if (!recipient)
 			return _sendMessage(clientFd, ERR_NOSUCHNICK(sender->getNickname(), target));
-
-		std::string fullMsg = prefix + target + " :" + message + "\r\n";//arregla el mensaje
+		std::string fullMsg = prefix + target + ": " + message + "\r\n";//arregla el mensaje
 		_sendMessage(recipient->getFd(), fullMsg);//envia
 	}
 }
