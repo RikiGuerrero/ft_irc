@@ -90,12 +90,12 @@ void Server::_acceptClient(Channel *channel, Client *client, int clientFd, const
 	channel->addClient(client);//si no adiciona al set de los clientes
 	if (!channel->isOperator(client) && channel->getTotalUsers() == 1)// && channel->getTopic().empty())//si el cliente no es operador y el topico esta vacio
 		channel->addOperator(client);//adc al set de operadores
-	_sendMessage(clientFd, RPL_JOIN(client->getNickname(), client->getUsername(), client->getHostname(), channelName));//!!
+	_sendMessage(clientFd, RPL_JOIN(client->getNickname(), client->getUsername(), client->getHostname(), channelName));
 	if (channel->getTopic().empty())//set topic
 		_sendMessage(clientFd, RPL_NOTOPIC(client->getNickname(), channelName));
 	else
 		_sendMessage(clientFd, RPL_TOPIC(client->getNickname(), channelName, channel->getTopic()));
-	std::string names = RPL_NAMREPLY(channelName);
+	std::string names = RPL_NAMREPLY(client->getNickname(), channelName);
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (channel->hasClient(it->second))

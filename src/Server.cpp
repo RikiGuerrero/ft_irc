@@ -44,7 +44,12 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 	else
 	{
 		if (cmd == "JOIN" || cmd == "join")
+		{
+			/* std::string channel;
+			ss >> channel;
+			_handleJoin(clientFd, channel); */
 			_join(client, clientFd, msg);//entra en el canal, falta modo invitacion
+		}
 		else if (cmd == "PRIVMSG" || cmd == "privvmsg")
 			_privmsg(client, clientFd, msg);//envia un mensaje privado o a un canal
 		else if (cmd == "PING" || cmd == "ping")

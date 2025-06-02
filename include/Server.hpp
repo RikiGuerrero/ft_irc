@@ -45,7 +45,7 @@ class Server
 		void _part(Client *client, int clientFd, const std::string &msg);
 		void _privmsg(Client *sender, int clientFd, const std::string &msg);
 		void _quit(Client *client, int clientFd, const std::string &msg);
-
+	void _handleJoin(int clientFd, const std::string &channelName);
 		//Operators funciones
 		void _invite(Client *client, int clientFd, const std::string &msg);
 		void _kick(Client *client, int clientFd, const std::string &msg);

@@ -22,7 +22,7 @@
 
 // Numerics
 #define RPL_WELCOME(nick, username, hostname) 	":ft.irc 001 " + nick + " :Welcome to the ft_irc Network, " + nick + "!" + username + "@" + hostname + "\r\n"
-#define RPL_NAMREPLY(channel) 					":ft.irc 353 = " + channel + " : "
+#define RPL_NAMREPLY(nick, channel)				":ft.irc 353 " + nick + " = " + channel + " :"
 #define RPL_ENDOFNAMES(nick, channel) 			":ft.irc 366 " + nick + " " + channel + " :End of NAMES list\r\n"
 #define RPL_CHANNELMODES(client, channel, modes) ":ft.irc 324 " + client + " " + channel + modes + "\r\n"
 #define RPL_NOTOPIC(client,  channel)			":ft.irc 331 " + client + " " + channel + " :No topic is set\r\n"
@@ -32,5 +32,4 @@
 // Command messages
 #define RPL_PONG(token) 						"PONG ft.irc " + token + "\r\n"
 #define RPL_JOIN(nick, username, host, channel) ":" + nick + "!" + username + "@" + host + " JOIN :" + channel + "\r\n"
-
 #endif
