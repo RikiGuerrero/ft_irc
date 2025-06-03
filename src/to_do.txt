@@ -5,3 +5,6 @@
 -> as veces no encontra un usuario en el mode por ejemplo
 ->borrar cliente de los initados y operadores
 -> eniar mensajes avisando cambios en el mode!!!
+-> comando WHO
+-> ao enviar comanos por terminar alguns caracteres como # sao necessarios
+-> comando kick funciona por terminal mas por hexchat necessarios

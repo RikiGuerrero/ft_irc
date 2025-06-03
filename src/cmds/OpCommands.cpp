@@ -79,8 +79,8 @@ void Server::_kick(Client *client, int clientFd, const std::string &msg)//NO TES
 {	
 	std::istringstream ss(msg);
 	std::string cmd, channelName, user, reason;
+	
 	ss >> cmd >> channelName >> user >> reason;
-
 	if (_channels.find(channelName) == _channels.end())
 		return _sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
 	Channel *channel = _channels[channelName];
@@ -94,6 +94,7 @@ void Server::_kick(Client *client, int clientFd, const std::string &msg)//NO TES
 	Client *target = NULL;//encontra el target del mensaje
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
+		std::cout << channelName << " " << user << " " << it->second->getNickname() << "\n";
 		if (it->second->getNickname() == user)
 		{
 			target = it->second;
@@ -102,8 +103,10 @@ void Server::_kick(Client *client, int clientFd, const std::string &msg)//NO TES
 	}
 	if (!target)
 		return _sendMessage(clientFd, ERR_USERNOTINCHANNEL(client->getNickname(), user, channelName));
+	std::string kickMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost ";
 	if (reason.empty())
 		reason = "being too boring";
-	_broadcastToChannel(channelName, target->getNickname() + " was kicked from " + channelName + " due to " + reason + "\r\n");
-	_removeClient(target->getFd());
+	channel->removeClient(target);
+	_broadcastToChannel(channelName, kickMsg + msg + "\r\n");
+	_sendMessage(target->getFd(), target->getNickname() + " was kicked from " + channelName + " due to " + reason + "\r\n");
 }
