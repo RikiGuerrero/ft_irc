@@ -43,7 +43,8 @@ void Channel::addOperator(Client *client)
 
 void Channel::addInvited(Client *client)
 {
-	_invited[client->getFd()] = client;
+	if(client)
+		_invited[client->getFd()] = client;
 }
 
 void Channel::setTopicOpMode(bool mode)

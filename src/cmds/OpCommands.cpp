@@ -47,6 +47,7 @@ void Server::_invite(Client *client, int clientFd, const std::string &msg)//NO T
 	std::string cmd, user, channelName;
 
 	ss >> cmd >> user >> channelName;
+	
 	if (user.empty() || channelName.empty())
 		return _sendMessage(clientFd, ERR_NEEDMOREPARAMS(client->getNickname(), "INVITE"));	
 	if (_channels.find(channelName) == _channels.end())
@@ -60,14 +61,17 @@ void Server::_invite(Client *client, int clientFd, const std::string &msg)//NO T
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); it++)
 	{
 		if (it->second->getNickname() == user)
+		{
 			target = it->second;
-		break;
+			break;
+		}
 	}
-	//no se que pasa si el target no existe
+	if (!target)
+		return _sendMessage(clientFd, ERR_NOSUCHNICK(user, channelName));
 	if (channel->hasClient(target))
 		return _sendMessage(target->getFd(), ERR_USERONCHANNEL(client->getNickname(), user, channelName));
 	channel->addInvited(target);
-	_sendMessage(clientFd, RPL_INVITING(msg));//mensage a quien invito 
+	_sendMessage(clientFd, RPL_INVITING(msg));//mensaje a quien invito 
 	_sendMessage(target->getFd(), client->getNickname() + " has invited you to the channel " + channelName + "\r\n");
 }
 
@@ -97,7 +101,7 @@ void Server::_kick(Client *client, int clientFd, const std::string &msg)//NO TES
 		}
 	}
 	if (!target)
-		return _sendMessage(clientFd, ERR_USERNOTINCHANNEL(client->getNickname(), target->getNickname(), channelName));
+		return _sendMessage(clientFd, ERR_USERNOTINCHANNEL(client->getNickname(), user, channelName));
 	if (reason.empty())
 		reason = "being too boring";
 	_broadcastToChannel(channelName, target->getNickname() + " was kicked from " + channelName + " due to " + reason + "\r\n");

@@ -25,7 +25,6 @@ void Server::_modeO(Client *client, int clientFd, std::string &flag, std::string
 		channel->addOperator(target);
 	else if (flag[0] == '-')
 		channel->removeOperator(target);
-	//_sendMessage(clientFd, ":ft_irc MODE " + channel->getName() + " " + flag + " " + user + "\r\n");
 	_broadcastToChannel(channel->getName(), ":ft_irc MODE " + channel->getName() + " " + flag + " " + user + "\r\n");
 }
 
@@ -35,6 +34,7 @@ void Server::_modeI(Channel *channel, const std::string &flag)
 		channel->setInviteOnly(false);
 	if (flag[0] == '+')
 		channel->setInviteOnly(true);
+	_broadcastToChannel(channel->getName(), ":ft_irc MODE " + channel->getName() + " " + flag + " \r\n");
 }
 
 void Server::_modeT(Channel *channel, const std::string &flag)
@@ -43,6 +43,7 @@ void Server::_modeT(Channel *channel, const std::string &flag)
 		channel->setTopicOpMode(false);
 	if (flag[0] == '+')
 		channel->setTopicOpMode(true);
+	_broadcastToChannel(channel->getName(), ":ft_irc MODE " + channel->getName() + " " + flag + " \r\n");
 }
 
 void Server::_modeL(Client *client, Channel *channel, const std::string &flag, const std::string &parameters)
@@ -55,6 +56,7 @@ void Server::_modeL(Client *client, Channel *channel, const std::string &flag, c
 	}
 	else if (flag[0] == '-')
 		channel->setLimit(-1);
+	_broadcastToChannel(channel->getName(), ":ft_irc MODE " + channel->getName() + " " + flag + " \r\n");
 }
 
 void Server::_modeK(Client *client, Channel *channel, const std::string &flag, const std::string &parameters)
@@ -66,7 +68,8 @@ void Server::_modeK(Client *client, Channel *channel, const std::string &flag, c
 		channel->setPass(parameters, true);
 	}
 	else if (flag[0] == '-')
-		channel->setLimit(-1);
+		channel->setPass("", false);
+	_broadcastToChannel(channel->getName(), ":ft_irc MODE " + channel->getName() + " " + flag + " \r\n");
 }
 
 void Server::_mode(Client *client, int clientFd, const std::string &msg)
