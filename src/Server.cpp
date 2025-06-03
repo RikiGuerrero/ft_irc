@@ -43,7 +43,6 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 	}
 	else
 	{
-		std::cout << msg << std::endl;
 		if (cmd == "JOIN" || cmd == "join")
 			_join(client, clientFd, msg);//entra en el canal, falta modo invitacion
 		else if (cmd == "PRIVMSG" || cmd == "privvmsg")
@@ -186,13 +185,14 @@ void Server::_handleClientMessage(int clientFd)
 		if (!msg.empty() && msg[msg.size() - 1] == '\r') //si el ultimo caracter es \r, lo elimina
 			msg.erase(msg.size() - 1);
 		_parseCommand(clientFd, msg); //analiza el comando
+		if (_clients.find(clientFd) == _clients.end()) //si el cliente fue eliminado, no continua
+			return;
 		buf.erase(0, pos + 1); //borra el mensaje procesado del buffer
 	}
 }
 
 void Server::_removeClient(int clientFd)
 {
-	close(clientFd);//cierra o fd
 	for (std::size_t i = 0; i < _pollFds.size(); ++i)
 	{
 		if (_pollFds[i].fd == clientFd) //apaga del vector de fds
@@ -201,6 +201,7 @@ void Server::_removeClient(int clientFd)
 			break;
 		}
 	}
+	close(clientFd);//cierra o fd
 	std::map<int, Client *>::iterator it = _clients.find(clientFd);
 	if (it != _clients.end())//apaga el objeto
 	{

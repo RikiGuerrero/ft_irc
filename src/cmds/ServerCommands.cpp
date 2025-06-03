@@ -199,17 +199,30 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 	
 	channel->removeClient(client);//remove el cliente
 	
-	bool empty = true;//si el canal estiver vacio al final remove el canal tambien
-	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	if (channel->getTotalUsers() > 0)
 	{
-		if (channel->hasClient(it->second))
+		bool hasOperator = false;
+		for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
-			empty = false;
-			channel->addOperator(it->second);
-			break;
+			if (channel->hasClient(it->second) && channel->isOperator(it->second))
+			{
+				hasOperator = true;
+				break;
+			}
+		}
+		if (!hasOperator)
+		{
+			for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+			{
+				if (channel->hasClient(it->second))
+				{
+					channel->addOperator(it->second);//adc un operador al canal
+					break;
+				}
+			}
 		}
 	}
-	if (empty)
+	if (channel->getTotalUsers() == 0)//si el canal esta vacio
 	{
 		delete channel;
 		_channels.erase(channelName);
@@ -218,13 +231,12 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 
 void Server::_quit(Client *client, int clientFd, const std::string &msg)
 {
-
 	std::istringstream ss(msg);
 	std::string cmd, reason;
 
 	ss >> cmd;
 	std::getline(ss, reason);
-	if (reason[0] == ':')
+	if (!reason.empty() && reason[0] == ':')
 		reason = reason.substr(1);
 	std::string quitMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost QUIT";
 	if (!reason.empty())
@@ -233,36 +245,17 @@ void Server::_quit(Client *client, int clientFd, const std::string &msg)
 		quitMsg += " :Client Quit";
 	quitMsg += "\r\n";
 
+	std::vector<std::string> channelsToLeave;
 	for (std::map<std::string, Channel *>::iterator it = _channels.begin(); it != _channels.end(); ++it)
 	{
 		if (it->second->hasClient(client))
-		{
-			_broadcastToChannel(it->first, quitMsg, clientFd);
-			it->second->removeClient(client);
-		}
-	}
+			channelsToLeave.push_back(it->first);
+	}	
+	for (std::vector<std::string>::iterator it = channelsToLeave.begin(); it != channelsToLeave.end(); ++it)
+		_broadcastToChannel(*it, quitMsg, clientFd);
+	for (std::vector<std::string>::iterator it = channelsToLeave.begin(); it != channelsToLeave.end(); ++it)
+		_part(client, clientFd, "PART " + *it + " :" + reason);
 
-	for (std::map<std::string, Channel *>::iterator it = _channels.begin(); it != _channels.end(); ++it)
-	{
-		bool empty = true;
-		for (std::map<int, Client *>::iterator cit = _clients.begin(); cit != _clients.end(); ++cit)
-		{
-			if (it->second->hasClient(cit->second))
-			{
-				empty = false;
-				break;
-			}
-		}
-
-		if (empty)
-		{
-			delete it->second;
-			_channels.erase(it++);
-		}
-		else
-			++it;
-	}
-	
 	_sendMessage(clientFd, quitMsg);
 	_removeClient(clientFd);
 }
