@@ -17,6 +17,7 @@
 #define ERR_BADCHANNELKEY(client, channel)	":ircserv 475" + client + " " + channel + " :Cannot join channel (+k)\r\n"
 #define ERR_CHANNELISFULL(client, channel)	":ircserv 471" + client + " " + channel + " :Cannot join channel (+l)\r\n"
 #define ERR_INVITEONLYCHAN(client, channel)	":ircserv 473" + client + " " + channel + " :Cannot join channel (+i)\r\n"
+//#define ERR_NOSUCHNICK(client)				":ircserv 401" + client + " ircserv :No such nick" 
 
 
 

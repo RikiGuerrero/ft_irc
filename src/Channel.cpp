@@ -19,8 +19,9 @@ void Channel::addClient(Client *client)
 }
 void Channel::removeClient(Client *client)
 {
+	if (isOperator(client))
+		_operators.erase(client);
 	_clients.erase(client);
-	_operators.erase(client);
 }
 bool Channel::hasClient(Client *client) const
 {
@@ -42,7 +43,8 @@ void Channel::addOperator(Client *client)
 
 void Channel::addInvited(Client *client)
 {
-	_invited[client->getFd()] = client;
+	if(client)
+		_invited[client->getFd()] = client;
 }
 
 void Channel::setTopicOpMode(bool mode)

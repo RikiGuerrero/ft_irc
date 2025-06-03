@@ -51,7 +51,7 @@ void Server::_user(Client *client, int clientFd, const std::string &msg)
 	//std::cout << "User: " << client->getUsername() << " is setted!\n"; 
 }
 
-void Server::_join(Client *client, int clientFd, const std::string &msg)
+void Server::	_join(Client *client, int clientFd, const std::string &msg)
 {//entrada com senha JOIN #canal senha, límite de usuarios no canal e invite only mode
 	std::string cmd, channelName, pass;
 	std::istringstream ss(msg);
