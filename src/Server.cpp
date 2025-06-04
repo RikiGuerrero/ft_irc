@@ -30,45 +30,49 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 	std::string cmd;
 	ss >> cmd;
 
+	
 	bool wasAuthenticated = client->isAuthenticated();
-
+	
 	if (!wasAuthenticated)//si no esta autenticado
 	{
 		if (cmd == "PASS" || cmd == "pass")
-			_pass(client, clientFd, msg);
+		_pass(client, clientFd, msg);
 		else if (cmd == "NICK" || cmd == "nick")
-			_nick(client, clientFd, msg);
+		_nick(client, clientFd, msg);
 		else if (cmd == "USER" || cmd == "user")
 			_user(client, clientFd, msg);
-	}
+		}
 	else
 	{
 		if (cmd == "JOIN" || cmd == "join")
 			_join(client, clientFd, msg);//entra en el canal, falta modo invitacion
-		else if (cmd == "PRIVMSG" || cmd == "privvmsg")
+			else if (cmd == "PRIVMSG" || cmd == "privvmsg")
 			_privmsg(client, clientFd, msg);//envia un mensaje privado o a un canal
-		else if (cmd == "PING" || cmd == "ping")
+			else if (cmd == "PING" || cmd == "ping")
 			_ping(clientFd, msg);
-		else if (cmd == "PART" || cmd  == "part")
+			else if (cmd == "PART" || cmd  == "part")
 			_part(client, clientFd, msg);//excluir un usuario de un canal
-		else if (cmd == "TOPIC" || cmd == "topic")
+			else if (cmd == "TOPIC" || cmd == "topic")
 			_topic(client, clientFd, msg);
-		else if (cmd == "INVITE" || cmd == "invite")
+			else if (cmd == "INVITE" || cmd == "invite")
 			_invite(client, clientFd, msg);
-		else if (cmd == "KICK" || cmd == "kick")
+			else if (cmd == "KICK" || cmd == "kick")
 			_kick (client, clientFd, msg);
-		else if (cmd == "MODE" || cmd == "mode")
+			else if (cmd == "MODE" || cmd == "mode")
 			_mode(client, clientFd, msg);
-		else if (cmd == "QUIT")
+			else if (cmd == "QUIT")
 			_quit(client, clientFd, msg);
-	}
-
-	client->tryAuthenticate();//autentica el cliente
-
-	if (!wasAuthenticated && client->isAuthenticated())
+		}
+		
+		if (_clients.find(clientFd) == _clients.end())
+			return ;
+		
+		client->tryAuthenticate();//autentica el cliente
+		
+		if (!wasAuthenticated && client->isAuthenticated())
 		_sendWelcomeMessage(clientFd);
-}
-
+	}
+	
 void Server::_initSocket()
 {
 	_serverSocket = socket(AF_INET, SOCK_STREAM, 0);//crea o socket
@@ -161,6 +165,7 @@ void Server::_acceptNewClient()
 	struct pollfd clientPfd;//escuchaa ese fd
 	clientPfd.fd = clientFd;
 	clientPfd.events = POLLIN;
+	clientPfd.revents = 0;
 	_pollFds.push_back(clientPfd);//adc en el vector de fds
 
 	char clientIp[INET_ADDRSTRLEN];

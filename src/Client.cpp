@@ -42,7 +42,7 @@ bool Client::isAuthenticated() const
 }
 bool Client::hasAllInfo() const
 {
-    return _hasPass && _hasNick && _hasUser;
+    return _hasPass== true && _hasNick == true && _hasUser == true;
 }
 bool Client::isRegistered() const
 {
@@ -87,7 +87,7 @@ void Client::eraseSendBuffer(size_t count)
 }
 void Client::tryAuthenticate()
 {
-    if (hasAllInfo() && !_authenticated)
+    if (hasAllInfo() && _authenticated == false)
         _authenticated = true;
 }
 std::string Client::getPrefix() const

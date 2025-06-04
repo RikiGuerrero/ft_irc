@@ -56,7 +56,7 @@ void Server::_modeL(Client *client, Channel *channel, const std::string &flag, c
 	}
 	else if (flag[0] == '-')
 		channel->setLimit(-1);
-	_broadcastToChannel(channel->getName(), ":ft_irc MODE " + channel->getName() + " " + flag + " \r\n");
+	_broadcastToChannel(channel->getName(), ":ft_irc MODE " + channel->getName() + " " + flag + " " +  parameters + " \r\n");
 }
 
 void Server::_modeK(Client *client, Channel *channel, const std::string &flag, const std::string &parameters)
