@@ -33,6 +33,7 @@ class Server
 		void _removeClient(int clientFd);
 		void _parseCommand(int clientFd, const std::string &msg);
 		void _sendMessage(int fd, const std::string &msg);
+		void _handleClientWrite(int clientFd);
 		void _sendWelcomeMessage(int clientFd);
 		void _broadcastToChannel(const std::string &channel, const std::string &msg, int excludeFd = -1);
 		bool _nicknameExists(const std::string &nickname);
