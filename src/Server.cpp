@@ -66,6 +66,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 		
 		if (_clients.find(clientFd) == _clients.end())
 			return ;
+		
 		client->tryAuthenticate();//autentica el cliente
 		
 		if (!wasAuthenticated && client->isAuthenticated())
