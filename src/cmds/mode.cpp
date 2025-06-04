@@ -4,6 +4,8 @@
 
 void Server::_modeO(Client *client, int clientFd, std::string &flag, std::string &user, Channel *channel)
 {
+	if (client->getNickname() == user)
+		return;
 	Client *target = NULL;//encontra el target del mensaje
 	if (user.empty())
 		return _sendMessage(clientFd, ERR_NEEDMOREPARAMS(client->getNickname(), "MODE +o"));	

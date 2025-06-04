@@ -216,7 +216,8 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 			{
 				if (channel->hasClient(it->second))
 				{
-					channel->addOperator(it->second);//adc un operador al canal
+					_broadcastToChannel(channel->getName(), ":ft_irc MODE " + channel->getName() + " +o " + it->second->getNickname() + "\r\n");					
+					channel->addOperator(it->second);
 					break;
 				}
 			}

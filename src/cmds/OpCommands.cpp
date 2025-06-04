@@ -76,11 +76,13 @@ void Server::_invite(Client *client, int clientFd, const std::string &msg)//NO T
 }
 
 void Server::_kick(Client *client, int clientFd, const std::string &msg)//NO TESTEADO
-{	
+{
 	std::istringstream ss(msg);
 	std::string cmd, channelName, user, reason;
 	
 	ss >> cmd >> channelName >> user >> reason;
+	if (client->getNickname() == user)
+		return _sendMessage(clientFd, ERR_NOSUCHNICK(client->getNickname(), user));
 	if (_channels.find(channelName) == _channels.end())
 		return _sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
 	Channel *channel = _channels[channelName];

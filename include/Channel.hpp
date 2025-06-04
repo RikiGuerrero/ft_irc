@@ -12,14 +12,14 @@ class Channel
 	private:
 		std::string _name;
 		std::string _topic;
-		std::string _pass;//pass of the channel if is required
-		int _limit; //limit of users in the channel, -1 if is no limit
-		bool _topicOpMode;//true solo op pueden cambiar
-		bool _inviteOnly;//invite olny flag
-		bool _keyNeed;//key flag
+		std::string _pass;
+		int _limit;
+		bool _topicOpMode;
+		bool _inviteOnly;
+		bool _keyNeed;
 		std::set<Client *> _clients;
 		std::set<Client *> _operators;
-		std::map<int, Client *> _invited;//clientes invitados al canal
+		std::map<int, Client *> _invited;
 
 	public:
 		Channel(const std::string &name);

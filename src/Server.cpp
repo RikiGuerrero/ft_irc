@@ -21,6 +21,12 @@ Server::~Server()
 {
 	for (std::size_t i = 0; i < _pollFds.size(); ++i)
 		close(_pollFds[i].fd);
+	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		delete it->second;
+	_clients.clear();
+	for (std::map<std::string, Channel *>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+		delete it->second;
+	_channels.clear();
 }
 
 void Server::_parseCommand(int clientFd, const std::string &msg)

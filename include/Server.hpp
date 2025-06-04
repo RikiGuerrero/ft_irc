@@ -23,9 +23,9 @@ class Server
 		int _port;
 		int _serverSocket;
 		std::string _password;
-		std::vector<struct pollfd> _pollFds;//fds de clientes e servidores
-		std::map<int, Client *> _clients;//map com todoos os clientes, chaves sao os fds
-		std::map<std::string, Channel *> _channels;//map com todos os canais, chaves sao os nomes
+		std::vector<struct pollfd> _pollFds;
+		std::map<int, Client *> _clients;
+		std::map<std::string, Channel *> _channels;
 
 		void _initSocket();
 		void _acceptNewClient();
@@ -46,8 +46,7 @@ class Server
 		void _part(Client *client, int clientFd, const std::string &msg);
 		void _privmsg(Client *sender, int clientFd, const std::string &msg);
 		void _quit(Client *client, int clientFd, const std::string &msg);
-	void _handleJoin(int clientFd, const std::string &channelName);
-		//Operators funciones
+		//Operators functions
 		void _invite(Client *client, int clientFd, const std::string &msg);
 		void _kick(Client *client, int clientFd, const std::string &msg);
 		void _topic(Client *client, int clientFd, const std::string &msg);
@@ -57,8 +56,6 @@ class Server
 		void _modeT(Channel *channel, const std::string &flag);
 		void _modeL(Client *client, Channel *channel, const std::string &flag, const std::string &parameters);
 		void _modeK(Client *client, Channel *channel, const std::string &flag, const std::string &parameters);
-
-		//std::string getError(int error, std::string name,  std::string sec_part);
 		
 	public:
 		Server(const std::string &port, const std::string &password);
