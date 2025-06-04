@@ -32,6 +32,10 @@ const std::string &Client::getHostname() const
 {
    return _hostname; 
 }
+const std::string &Client::getSendBuffer() const
+{
+    return _sendBuffer;
+}
 bool Client::isAuthenticated() const
 {
     return _authenticated;
@@ -65,6 +69,21 @@ void Client::setRealname(const std::string &realname)
 void Client::setPass(bool ok)
 {
     _hasPass = ok;
+}
+void Client::appendToSendBuffer(const std::string &data)
+{
+    _sendBuffer.append(data);
+}
+void Client::clearSendBuffer()
+{
+    _sendBuffer.clear();
+}
+void Client::eraseSendBuffer(size_t count)
+{
+    if (count > _sendBuffer.length())
+        _sendBuffer.clear();
+    else
+        _sendBuffer.erase(0, count);
 }
 void Client::tryAuthenticate()
 {

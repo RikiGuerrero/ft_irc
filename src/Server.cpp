@@ -127,12 +127,20 @@ void Server::run()
 		}
 		for (std::size_t i = 0; i < _pollFds.size(); ++i)
 		{
+			if (_pollFds[i].fd == -1)
+				continue;
 			if (_pollFds[i].revents & POLLIN)//checkea si hay dados disponibles para lectura en todos los fds
 			{
 				if (_pollFds[i].fd == _serverSocket)//si el fd es igual al del server es para  conectarse
 					_acceptNewClient();
 				else
 					_handleClientMessage(_pollFds[i].fd);//si no es mensaje
+			}
+			if (_pollFds[i].revents & POLLOUT)
+			{
+				std::map<int, Client *>::iterator it = _clients.find(_pollFds[i].fd);
+				if (it != _clients.end() && !it->second->getSendBuffer().empty())
+					_handleClientWrite(_pollFds[i].fd);
 			}
 		}
 	}
