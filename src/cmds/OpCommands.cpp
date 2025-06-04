@@ -1,7 +1,7 @@
 #include "Server.hpp"
 #include "IrcMessages.hpp"
 
-void Server::_topic(Client *client, int clientFd, const std::string &msg)//NO TESTEADO
+void Server::_topic(Client *client, int clientFd, const std::string &msg)
 {
 	std::istringstream ss(msg);
 	std::string cmd, channelName, newTopic;
@@ -41,7 +41,7 @@ void Server::_topic(Client *client, int clientFd, const std::string &msg)//NO TE
 
 }
 
-void Server::_invite(Client *client, int clientFd, const std::string &msg)//NO TESTEADO
+void Server::_invite(Client *client, int clientFd, const std::string &msg)
 {
 	std::istringstream ss(msg);
 	std::string cmd, user, channelName;
@@ -75,39 +75,62 @@ void Server::_invite(Client *client, int clientFd, const std::string &msg)//NO T
 	_sendMessage(target->getFd(), client->getNickname() + " has invited you to the channel " + channelName + "\r\n");
 }
 
-void Server::_kick(Client *client, int clientFd, const std::string &msg)//NO TESTEADO
+void Server::_kick(Client *client, int clientFd, const std::string &msg)
 {
 	std::istringstream ss(msg);
-	std::string cmd, channelName, user, reason;
+	std::string cmd, channelName, reason, rest, lastUser, user;
+	std::vector<std::string> users;
 	
-	ss >> cmd >> channelName >> user >> reason;
-	if (client->getNickname() == user)
-		return _sendMessage(clientFd, ERR_NOSUCHNICK(client->getNickname(), user));
+	ss >> cmd >> channelName >> rest;
+	
+	while (std::getline(ss, rest, ','))
+	{
+		if (!rest.empty() && rest[0] == ' ')
+        	rest = rest.substr(1); // Remove espaço inicial
+		std::cout << rest << "\n";
+		users.push_back(rest);
+	}
+	
+	std::string last = users.back();
+	std::cout << last << "\n";
+	std::istringstream sss(last);
+	sss >> lastUser >> reason;
+	std::cout << lastUser << " " << reason << std::endl;
+
 	if (_channels.find(channelName) == _channels.end())
 		return _sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
 	Channel *channel = _channels[channelName];
-	if (channelName.empty() || user.empty())
+	if (channelName.empty() || users.empty())
 		return _sendMessage(clientFd, ERR_NEEDMOREPARAMS(client->getNickname(), "TOPIC"));
 	if (!channel->isOperator(client))
 		return _sendMessage(clientFd, ERR_CHANOPRIVSNEEDED(client->getNickname(), channelName));
 	if (!channel->hasClient(client))
 		return _sendMessage(clientFd, ERR_NOTONCHANNEL(client->getNickname(), channelName));
-	
-	Client *target = NULL;//encontra el target del mensaje
-	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-	{
-		if (it->second->getNickname() == user)
+
+	for (std::vector<std::string>::iterator vit = users.begin(); vit != users.end(); vit++)
+	{	
+		Client *target = NULL;//encontra el target del mensaje
+		for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
-			target = it->second;
-			break;
+			if (it->second->getNickname() == *vit)
+			{
+				target = it->second;
+				break;
+			}
+		}
+		std::cout << *vit << "\n";
+		if (!target)
+			_sendMessage(clientFd, ERR_USERNOTINCHANNEL(client->getNickname(), *vit, channelName));
+		else if (client->getNickname() == *vit)
+			_sendMessage(clientFd, ERR_NOSUCHNICK(client->getNickname(), *vit));
+		else
+		{
+			std::string kickMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost ";
+			if (reason.empty())
+				reason = "being too boring";
+			_broadcastToChannel(channelName, kickMsg + msg + "\r\n");
+			_sendMessage(target->getFd(), target->getNickname() + " was kicked from " + channelName + " due to " + reason + "\r\n");
+			channel->removeClient(target);
 		}
 	}
-	if (!target)
-		return _sendMessage(clientFd, ERR_USERNOTINCHANNEL(client->getNickname(), user, channelName));
-	std::string kickMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost ";
-	if (reason.empty())
-		reason = "being too boring";
-	_broadcastToChannel(channelName, kickMsg + msg + "\r\n");
-	_sendMessage(target->getFd(), target->getNickname() + " was kicked from " + channelName + " due to " + reason + "\r\n");
-	channel->removeClient(target);
 }
