@@ -6,7 +6,7 @@ void Server::_modeO(Client *client, int clientFd, std::string &flag, std::string
 {
 	if (client->getNickname() == user)
 		return;
-	Client *target = NULL;//encontra el target del mensaje
+	Client *target = NULL;
 	if (user.empty())
 		return _sendMessage(clientFd, ERR_NEEDMOREPARAMS(client->getNickname(), "MODE +o"));	
 	if (!channel->isOperator(client))
@@ -75,7 +75,7 @@ void Server::_modeK(Client *client, Channel *channel, const std::string &flag, c
 }
 
 void Server::_mode(Client *client, int clientFd, const std::string &msg)
-{//estoy considerando que las flags no vienen como ++oi solo +i +o
+{
 	std::istringstream ss(msg);
 	std::string cmd, channelName, flag, parameters;
 
@@ -83,7 +83,7 @@ void Server::_mode(Client *client, int clientFd, const std::string &msg)
 	if (_channels.find(channelName) == _channels.end())
 	return _sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
 	Channel *channel = _channels[channelName];
-	if (!channel->isOperator(client))//esos comandos son especificos del operador
+	if (!channel->isOperator(client))
 	return _sendMessage(clientFd, ERR_CHANOPRIVSNEEDED(client->getNickname(), channelName));
 	if (flag.empty())
 	return _sendMessage(clientFd, RPL_CHANNELMODES(client->getNickname(), channelName, channel->getModes()));

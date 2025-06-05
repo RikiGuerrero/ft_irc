@@ -1,8 +1,6 @@
 #include "Server.hpp"
 #include "IrcMessages.hpp"
 
-
-//posso passar ss como ponteiro.
 void Server::_pass(Client *client, int clientFd, const std::string &msg)
 {
 	std::istringstream ss(msg);
@@ -11,7 +9,7 @@ void Server::_pass(Client *client, int clientFd, const std::string &msg)
 	if (pass == _password)
 		client->setPass(true);
 	else
-		_sendMessage(clientFd, ERR_PASSWDMISMATCH);//envia mensaje al servidor
+		_sendMessage(clientFd, ERR_PASSWDMISMATCH);
 }
 
 void Server::_nick(Client *client, int clientFd, const std::string &msg)
@@ -22,18 +20,16 @@ void Server::_nick(Client *client, int clientFd, const std::string &msg)
 	if (!client->isPassSet())
 		return _sendMessage(clientFd, ERR_NOTREGISTERED);
 	ss >> nick;
-	if (_nicknameExists(nick))//si no es repetido
+	if (_nicknameExists(nick))
 		_sendMessage(clientFd, ERR_NICKNAMEINUSE(nick));
 	else
 		client->setNickname(nick);
-	//std::cout << "Nick: " << client->getNickname() << " is setted!\n"; 
 }
 
 void Server::_user(Client *client, int clientFd, const std::string &msg)
 {
 	std::istringstream ss(msg);
 	std::string username, unused, unused2, realname, cmd;
-	//los dos parametros unused son opcionales, hay que gestionar eso
 	if (!client->isPassSet())
 		return _sendMessage(clientFd, ERR_NOTREGISTERED);
 	if (client->isRegistered())
@@ -48,47 +44,72 @@ void Server::_user(Client *client, int clientFd, const std::string &msg)
 		realname = realname.substr(1);
 	client->setUsername(username);
 	client->setRealname(realname);
-	//std::cout << "User: " << client->getUsername() << " is setted!\n"; 
 }
 
 void Server::	_join(Client *client, int clientFd, const std::string &msg)
-{//entrada com senha JOIN #canal senha, límite de usuarios no canal e invite only mode
-	std::string cmd, channelName, pass;
+{
+	std::string cmd, channels, keys;
 	std::istringstream ss(msg);
-	ss >> cmd >> channelName >> pass;
+	ss >> cmd >> channels >> keys;
 
-	if (_channels.find(channelName) == _channels.end())// si el canal no existe
-		_channels[channelName] = new Channel(channelName);//crea o canal
-	Channel *channel = _channels[channelName];
-	if (channel->hasClient(client))//si el cliente esta en el canal
-		return;
+	std::vector<std::string> channelList;
+	std::vector<std::string> keyList;
+	std::istringstream channelStream(channels);
+	std::istringstream keyStream(keys);
+	std::string token;
 
-	if (channel->getKeyNeed())
+	while (std::getline(channelStream, token, ','))
+		channelList.push_back(token);
+	while (std::getline(keyStream, token, ','))
+		keyList.push_back(token);
+	
+	for (size_t i = 0; i < channelList.size(); ++i)
 	{
-		if (pass != channel->getPass() || pass.empty())
-			return _sendMessage(clientFd, ERR_BADCHANNELKEY(client->getNickname(), channelName));
+		std::string channelName = channelList[i];
+		std::string pass = (i < keyList.size()) ? keyList[i] : "";
+
+		if (_channels.find(channelName) == _channels.end())
+			_channels[channelName] = new Channel(channelName);
+		Channel *channel = _channels[channelName];
+		if (channel->hasClient(client))
+			continue;
+
+		if (channel->getKeyNeed())
+		{
+			if (pass != channel->getPass() || pass.empty())
+			{
+				_sendMessage(clientFd, ERR_BADCHANNELKEY(client->getNickname(), channelName));
+				continue;
+			}
+		}
+		if (channel->getLimit() != -1)
+		{
+			if (channel->getTotalUsers() == channel->getLimit())
+			{
+				_sendMessage(clientFd, ERR_CHANNELISFULL(client->getNickname(), channelName));
+				continue;
+			}
+		}
+		if (channel->getInviteOlny())
+		{
+			if (!channel->isInvited(clientFd))
+			{
+				_sendMessage(clientFd, ERR_INVITEONLYCHAN(client->getNickname(), channelName));
+				continue;
+			}
+		}
+		_acceptClient(channel, client, clientFd, channelName);
 	}
-	if (channel->getLimit() != -1)
-	{
-		if (channel->getTotalUsers() == channel->getLimit())
-			return _sendMessage(clientFd, ERR_CHANNELISFULL(client->getNickname(), channelName));
-	}
-	if (channel->getInviteOlny())
-	{
-		if (!channel->isInvited(clientFd))
-			return _sendMessage(clientFd, ERR_INVITEONLYCHAN(client->getNickname(), channelName));
-	}
-	_acceptClient(channel, client, clientFd, channelName);
 }
 
 
 void Server::_acceptClient(Channel *channel, Client *client, int clientFd, const std::string &channelName)
 {
-	channel->addClient(client);//si no adiciona al set de los clientes
-	if (!channel->isOperator(client) && channel->getTotalUsers() == 1)// && channel->getTopic().empty())//si el cliente no es operador y el topico esta vacio
-		channel->addOperator(client);//adc al set de operadores
+	channel->addClient(client);
+	if (!channel->isOperator(client) && channel->getTotalUsers() == 1)
+		channel->addOperator(client);
 	_sendMessage(clientFd, RPL_JOIN(client->getNickname(), client->getUsername(), client->getHostname(), channelName));
-	if (channel->getTopic().empty())//set topic
+	if (channel->getTopic().empty())
 		_sendMessage(clientFd, RPL_NOTOPIC(client->getNickname(), channelName));
 	else
 		_sendMessage(clientFd, RPL_TOPIC(client->getNickname(), channelName, channel->getTopic()));
@@ -106,7 +127,7 @@ void Server::_acceptClient(Channel *channel, Client *client, int clientFd, const
 	names += "\r\n";
 	_sendMessage(clientFd, names);
 	_sendMessage(clientFd, RPL_ENDOFNAMES(client->getNickname(), channelName));
-	_broadcastToChannel(channelName, client->getPrefix() + " JOIN :" + channelName + "\r\n", clientFd);//transmissao ao canal
+	_broadcastToChannel(channelName, client->getPrefix() + " JOIN :" + channelName + "\r\n", clientFd);
 }
 
 void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
@@ -128,7 +149,7 @@ void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 		return;
 	}
 
-	if (target[0] == '#')//si es un canal
+	if (target[0] == '#')
 	{
 		if (_channels.find(target) == _channels.end())
 			return _sendMessage(clientFd, ERR_NOSUCHCHANNEL(sender->getNickname(), target));
@@ -137,16 +158,16 @@ void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 		if (!channel->hasClient(sender))
 			return _sendMessage(clientFd, ERR_NOTONCHANNEL(sender->getNickname(), target));
 
-		std::string fullMsg = prefix + target + " :" + message + "\r\n";//arregla el mensaje
+		std::string fullMsg = prefix + target + " :" + message + "\r\n";
 		for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
-			if (it->second != sender && channel->hasClient(it->second))//si no es el sender
+			if (it->second != sender && channel->hasClient(it->second))
 				_sendMessage(it->first, fullMsg);
 		}
 	}
 	else
 	{
-		Client *recipient = NULL;//encontra el destinatario del mensagem
+		Client *recipient = NULL;
 		for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
 			if (it->second->getNickname() == target)
@@ -158,8 +179,8 @@ void Server::_privmsg(Client *sender, int clientFd, const std::string &msg)
 
 		if (!recipient)
 			return _sendMessage(clientFd, ERR_NOSUCHNICK(sender->getNickname(), target));
-		std::string fullMsg = prefix + target + ": " + message + "\r\n";//arregla el mensaje
-		_sendMessage(recipient->getFd(), fullMsg);//envia
+		std::string fullMsg = prefix + target + ": " + message + "\r\n";
+		_sendMessage(recipient->getFd(), fullMsg);
 	}
 }
 
@@ -177,56 +198,75 @@ void Server::_ping(int clientFd, const std::string &msg)
 
 void Server::_part(Client *client, int clientFd, const std::string &msg)
 {
-	std::string cmd, channelName, reason;
+	std::string cmd, channels, reason;
 	std::istringstream ss(msg);
 
-	ss >> cmd >> channelName >> reason;
+	std::cout << "msg: " << msg << std::endl;
+	ss >> cmd >> channels;
 	std::getline(ss, reason);
-	if (reason[0] == ':')
+	if (!reason.empty() && reason[0] == ' ')
 		reason = reason.substr(1);
-	if (_channels.find(channelName) == _channels.end())
-		return _sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
+	if (!reason.empty() && reason[0] == ':')
+		reason = reason.substr(1);
+
+	std::vector<std::string> channelList;
+	std::string token;
+	std::istringstream channelStream(channels);
+	while (std::getline(channelStream, token, ','))
+		channelList.push_back(token);
 	
-	Channel *channel = _channels[channelName];
-	if (!channel->hasClient(client))
-		return _sendMessage(clientFd, ERR_NOTONCHANNEL(client->getNickname(), channelName));
-	
-	std::string partMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost PART " + channelName;
-	if (!reason.empty())
-		partMsg += " :" + reason;
-	partMsg += "\r\n";
-	_broadcastToChannel(channelName, partMsg, -1);//envia mensaje al canal
-	
-	channel->removeClient(client);//remove el cliente
-	
-	if (channel->getTotalUsers() > 0)
+	for (size_t i = 0; i < channelList.size(); ++i)
 	{
-		bool hasOperator = false;
-		for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		std::string channelName = channelList[i];
+		if (_channels.find(channelName) == _channels.end())
 		{
-			if (channel->hasClient(it->second) && channel->isOperator(it->second))
-			{
-				hasOperator = true;
-				break;
-			}
+			_sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
+			continue;
 		}
-		if (!hasOperator)
+		Channel *channel = _channels[channelName];
+		if (!channel->hasClient(client))
 		{
+			_sendMessage(clientFd, ERR_NOTONCHANNEL(client->getNickname(), channelName));
+			continue;
+		}
+
+		std::string partMsg = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost PART " + channelName;
+		if (!reason.empty())
+			partMsg += " :" + reason;
+		partMsg += "\r\n";
+		_broadcastToChannel(channelName, partMsg, -1);
+		
+		channel->removeClient(client);
+		
+		if (channel->getTotalUsers() > 0)
+		{
+			bool hasOperator = false;
 			for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 			{
-				if (channel->hasClient(it->second))
+				if (channel->hasClient(it->second) && channel->isOperator(it->second))
 				{
-					_broadcastToChannel(channel->getName(), ":ft_irc MODE " + channel->getName() + " +o " + it->second->getNickname() + "\r\n");					
-					channel->addOperator(it->second);
+					hasOperator = true;
 					break;
 				}
 			}
+			if (!hasOperator)
+			{
+				for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+				{
+					if (channel->hasClient(it->second))
+					{
+						_broadcastToChannel(channel->getName(), ":ft_irc MODE " + channel->getName() + " +o " + it->second->getNickname() + "\r\n");					
+						channel->addOperator(it->second);
+						break;
+					}
+				}
+			}
 		}
-	}
-	if (channel->getTotalUsers() == 0)//si el canal esta vacio
-	{
-		delete channel;
-		_channels.erase(channelName);
+		if (channel->getTotalUsers() == 0)
+		{
+			delete channel;
+			_channels.erase(channelName);
+		}
 	}
 }
 

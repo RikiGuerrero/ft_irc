@@ -46,7 +46,7 @@ class Server
 		void _part(Client *client, int clientFd, const std::string &msg);
 		void _privmsg(Client *sender, int clientFd, const std::string &msg);
 		void _quit(Client *client, int clientFd, const std::string &msg);
-		//Operators functions
+
 		void _invite(Client *client, int clientFd, const std::string &msg);
 		void _kick(Client *client, int clientFd, const std::string &msg);
 		void _topic(Client *client, int clientFd, const std::string &msg);

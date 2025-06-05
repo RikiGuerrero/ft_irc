@@ -3,7 +3,7 @@
 extern volatile sig_atomic_t g_signalStatus;
 
 Server::Server(const std::string &port, const std::string &password)
-{//check parameters in the constructor
+{
 	for (std::string::const_iterator it = port.begin(); it != port.end(); *it++)
 	{
 		if (!isdigit(*it))
@@ -39,7 +39,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 	
 	bool wasAuthenticated = client->isAuthenticated();
 	
-	if (!wasAuthenticated)//si no esta autenticado
+	if (!wasAuthenticated)
 	{
 		if (cmd == "PASS" || cmd == "pass")
 			_pass(client, clientFd, msg);
@@ -51,13 +51,13 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 	else
 	{
 		if (cmd == "JOIN" || cmd == "join")
-			_join(client, clientFd, msg);//entra en el canal, falta modo invitacion
+			_join(client, clientFd, msg);
 		else if (cmd == "PRIVMSG" || cmd == "privvmsg")
-			_privmsg(client, clientFd, msg);//envia un mensaje privado o a un canal
+			_privmsg(client, clientFd, msg);
 		else if (cmd == "PING" || cmd == "ping")
 			_ping(clientFd, msg);
 		else if (cmd == "PART" || cmd  == "part")
-			_part(client, clientFd, msg);//excluir un usuario de un canal
+			_part(client, clientFd, msg);
 		else if (cmd == "TOPIC" || cmd == "topic")
 			_topic(client, clientFd, msg);
 		else if (cmd == "INVITE" || cmd == "invite")
@@ -73,7 +73,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 		if (_clients.find(clientFd) == _clients.end())
 			return ;
 		
-		client->tryAuthenticate();//autentica el cliente
+		client->tryAuthenticate();
 		
 		if (!wasAuthenticated && client->isAuthenticated())
 		_sendWelcomeMessage(clientFd);
@@ -81,12 +81,12 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 	
 void Server::_initSocket()
 {
-	_serverSocket = socket(AF_INET, SOCK_STREAM, 0);//crea o socket
+	_serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 	if (_serverSocket < 0)
 		throw std::runtime_error("Failed to create socket");
 
 	int opt = 1;
-	if (setsockopt(_serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)//cambia elcorpontamiento del socket para reutilizar direcciones locales (Patron)
+	if (setsockopt(_serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
 	{
 		close(_serverSocket);
 		throw std::runtime_error("Failed to set socket options");
@@ -98,28 +98,28 @@ void Server::_initSocket()
 		throw std::runtime_error("Failed to set socket to non-blocking");
 	}
 
-	struct sockaddr_in serverAddr;//estructura para representar direcciones IPv4
+	struct sockaddr_in serverAddr;
 	std::memset(&serverAddr, 0, sizeof(serverAddr));
-	serverAddr.sin_family = AF_INET;//IPv4
-	serverAddr.sin_addr.s_addr = INADDR_ANY;//acepta conecciones en cualquier interfaz
-	serverAddr.sin_port = htons(_port);//puerto
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_addr.s_addr = INADDR_ANY;
+	serverAddr.sin_port = htons(_port);
 
-	if (bind(_serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)//asocia un socket a una dirección y un puerto especifico, permite oyer y aceptar coneccion en ese puerto
+	if (bind(_serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)
 	{
 		close(_serverSocket);
 		throw std::runtime_error("Failed to bind socket");
 	}
 
-	if (listen(_serverSocket, 5) < 0)//pone un socket en modo de escuta, 
+	if (listen(_serverSocket, 5) < 0)
 	{
 		close(_serverSocket);
 		throw std::runtime_error("Failed to listen on socket");
 	}
 
-	struct pollfd serverPfd;//usada para monitorar multiplos fds
-	serverPfd.fd = _serverSocket;//en ese caso del servidor
+	struct pollfd serverPfd;
+	serverPfd.fd = _serverSocket;
 	serverPfd.events = POLLIN;
-	_pollFds.push_back(serverPfd);//adc al vector de fds
+	_pollFds.push_back(serverPfd);
 	
 	std::cout << "Server listening on port " << _port << std::endl;
 }
@@ -128,7 +128,7 @@ void Server::run()
 {
 	while (g_signalStatus)
 	{
-		int ret = poll(&_pollFds[0], _pollFds.size(), -1);//monitora multiplos fds
+		int ret = poll(&_pollFds[0], _pollFds.size(), -1);
 		if (ret < 0)
 		{
 			if (errno != EINTR)
@@ -139,12 +139,12 @@ void Server::run()
 		{
 			if (_pollFds[i].fd == -1)
 				continue;
-			if (_pollFds[i].revents & POLLIN)//checkea si hay dados disponibles para lectura en todos los fds
+			if (_pollFds[i].revents & POLLIN)
 			{
-				if (_pollFds[i].fd == _serverSocket)//si el fd es igual al del server es para  conectarse
+				if (_pollFds[i].fd == _serverSocket)
 					_acceptNewClient();
 				else
-					_handleClientMessage(_pollFds[i].fd);//si no es mensaje
+					_handleClientMessage(_pollFds[i].fd);
 			}
 			if (_pollFds[i].revents & POLLOUT)
 			{
@@ -160,26 +160,26 @@ void Server::_acceptNewClient()
 {
 	sockaddr_in clientAddr;
 	socklen_t addrLen = sizeof(clientAddr);
-	int clientFd = accept(_serverSocket, (struct sockaddr *)&clientAddr, &addrLen);//acepta la coneccion del cliente en un socket que esta en modo de escucha
-	if (clientFd < 0)//retorna un nuevo fd que representa esa coneccion
+	int clientFd = accept(_serverSocket, (struct sockaddr *)&clientAddr, &addrLen);
+	if (clientFd < 0)
 		return;
 	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0)
 	{
 		close(clientFd);
 		throw std::runtime_error("Failed to set client socket to non-blocking");
 	}
-	struct pollfd clientPfd;//escuchaa ese fd
+	struct pollfd clientPfd;
 	clientPfd.fd = clientFd;
 	clientPfd.events = POLLIN;
 	clientPfd.revents = 0;
-	_pollFds.push_back(clientPfd);//adc en el vector de fds
+	_pollFds.push_back(clientPfd);
 
 	char clientIp[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &clientAddr.sin_addr, clientIp, INET_ADDRSTRLEN);
 	std::string hostname = clientIp;
 
-	Client *newClient = new Client(clientFd, hostname);//Inicia un objeto del cliente
-	_clients[clientFd] = newClient;//adiciona al map, asociados por el fd	
+	Client *newClient = new Client(clientFd, hostname);
+	_clients[clientFd] = newClient;
 
 	std::cout << "New client connected (fd: " << clientFd << ")" << std::endl;
 }
@@ -188,8 +188,8 @@ void Server::_handleClientMessage(int clientFd)
 {
 	char buffer[512];
 	std::memset(buffer, 0, sizeof(buffer));
-	int bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);//reciber datos de un socket conectado
-	if (bytesRead <= 0)//si es == 0, el cliente se desconecto y es -1 se falha
+	int bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
+	if (bytesRead <= 0)
 		return _removeClient(clientFd);
 	
 	Client *client = _clients[clientFd];
@@ -198,15 +198,15 @@ void Server::_handleClientMessage(int clientFd)
 	std::string &buf = client->getRecvBuffer();
 	std::size_t pos;
 
-	while ((pos = buf.find('\n')) != std::string::npos) //busca el primer \n
+	while ((pos = buf.find('\n')) != std::string::npos)
 	{
-		std::string msg = buf.substr(0, pos); //corta la cadena hasta el \n
-		if (!msg.empty() && msg[msg.size() - 1] == '\r') //si el ultimo caracter es \r, lo elimina
+		std::string msg = buf.substr(0, pos);
+		if (!msg.empty() && msg[msg.size() - 1] == '\r')
 			msg.erase(msg.size() - 1);
-		_parseCommand(clientFd, msg); //analiza el comando
-		if (_clients.find(clientFd) == _clients.end()) //si el cliente fue eliminado, no continua
+		_parseCommand(clientFd, msg);
+		if (_clients.find(clientFd) == _clients.end())
 			return;
-		buf.erase(0, pos + 1); //borra el mensaje procesado del buffer
+		buf.erase(0, pos + 1);
 	}
 }
 
@@ -214,15 +214,15 @@ void Server::_removeClient(int clientFd)
 {
 	for (std::size_t i = 0; i < _pollFds.size(); ++i)
 	{
-		if (_pollFds[i].fd == clientFd) //apaga del vector de fds
+		if (_pollFds[i].fd == clientFd)
 		{
 			_pollFds.erase(_pollFds.begin() + i);
 			break;
 		}
 	}
-	close(clientFd);//cierra o fd
+	close(clientFd);
 	std::map<int, Client *>::iterator it = _clients.find(clientFd);
-	if (it != _clients.end())//apaga el objeto
+	if (it != _clients.end())
 	{
 		delete it->second;
 		_clients.erase(it);
