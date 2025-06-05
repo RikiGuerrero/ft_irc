@@ -201,7 +201,6 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 	std::string cmd, channels, reason;
 	std::istringstream ss(msg);
 
-	std::cout << "msg: " << msg << std::endl;
 	ss >> cmd >> channels;
 	std::getline(ss, reason);
 	if (!reason.empty() && reason[0] == ' ')
