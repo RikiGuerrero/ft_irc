@@ -67,7 +67,12 @@ void Server::	_join(Client *client, int clientFd, const std::string &msg)
 	{
 		std::string channelName = channelList[i];
 		std::string pass = (i < keyList.size()) ? keyList[i] : "";
-
+		
+		if (channelName.empty() || channelName[0] != '#')
+		{
+			_sendMessage(clientFd, ERR_NOSUCHCHANNEL(client->getNickname(), channelName));
+			continue;
+		}
 		if (_channels.find(channelName) == _channels.end())
 			_channels[channelName] = new Channel(channelName);
 		Channel *channel = _channels[channelName];
@@ -201,7 +206,6 @@ void Server::_part(Client *client, int clientFd, const std::string &msg)
 	std::string cmd, channels, reason;
 	std::istringstream ss(msg);
 
-	std::cout << "msg: " << msg << std::endl;
 	ss >> cmd >> channels;
 	std::getline(ss, reason);
 	if (!reason.empty() && reason[0] == ' ')
