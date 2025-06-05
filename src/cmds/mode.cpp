@@ -50,6 +50,14 @@ void Server::_modeT(Channel *channel, const std::string &flag)
 
 void Server::_modeL(Client *client, Channel *channel, const std::string &flag, const std::string &parameters)
 {
+
+	for (size_t i = 0; i < parameters.size(); i++)
+	{
+		if (!std::isdigit(parameters[i]))
+			return ;
+	}
+	if (std::atoi(parameters.c_str()) < 1)
+		return ;
 	if (flag[0] == '+')
 	{
 		if (parameters.empty())
