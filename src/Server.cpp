@@ -52,7 +52,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 	{
 		if (cmd == "JOIN" || cmd == "join")
 			_join(client, clientFd, msg);
-		else if (cmd == "PRIVMSG" || cmd == "privvmsg")
+		else if (cmd == "PRIVMSG" || cmd == "privmsg")
 			_privmsg(client, clientFd, msg);
 		else if (cmd == "PING" || cmd == "ping")
 			_ping(clientFd, msg);
@@ -66,7 +66,7 @@ void Server::_parseCommand(int clientFd, const std::string &msg)
 			_kick (client, clientFd, msg);
 		else if (cmd == "MODE" || cmd == "mode")
 			_mode(client, clientFd, msg);
-		else if (cmd == "QUIT")
+		else if (cmd == "QUIT" || cmd == "quit")
 			_quit(client, clientFd, msg);
 		}
 		
