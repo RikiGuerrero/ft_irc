@@ -22,14 +22,14 @@ void Server::_topic(Client *client, int clientFd, const std::string &msg)
 		else 
 			return _sendMessage(clientFd, RPL_TOPIC(client->getNickname(), channelName, channel->getTopic()));
 	}
-	else if (channel->getTopicOpMode() == true && !channel->isOperator(client))//si solo puede cambiar los operadores y el cliente no lo es
+	else if (channel->getTopicOpMode() == true && !channel->isOperator(client))
 		return _sendMessage(clientFd, ERR_CHANOPRIVSNEEDED(client->getNickname(), channelName));
 	else
 	{
 		if (newTopic == ":")
 		{
 			channel->setTopic("");
-			_broadcastToChannel(channelName,  "Clearing the topic on " + channelName + "\r\n", -1);//no se si hace falta ircserv
+			_broadcastToChannel(channelName,  "Clearing the topic on " + channelName + "\r\n", -1);
 		}
 		
 		else
@@ -71,7 +71,7 @@ void Server::_invite(Client *client, int clientFd, const std::string &msg)
 	if (channel->hasClient(target))
 		return _sendMessage(target->getFd(), ERR_USERONCHANNEL(client->getNickname(), user, channelName));
 	channel->addInvited(target);
-	_sendMessage(clientFd, RPL_INVITING(msg));//mensaje a quien invito 
+	_sendMessage(clientFd, RPL_INVITING(msg));
 	_sendMessage(target->getFd(), client->getNickname() + " has invited you to the channel " + channelName + "\r\n");
 }
 
